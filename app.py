@@ -1,12 +1,18 @@
 import re
 import pandas as pd
-import ollama
+from openai import OpenAI
 import streamlit as st
 import matplotlib.pyplot as plt
 import pdfplumber
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY") or st.secrets["OPENAI_API_KEY"]
+)
 st.set_page_config(
     page_title="MACCE the Money Helper",
     page_icon="💸",
@@ -212,7 +218,7 @@ st.subheader("Bank Statement Data")
 st.dataframe(df, use_container_width=True)
 
 question = st.text_input(
-    "What your broke ass need help with now? type quit to shut me up"
+    "What can I help you with?"
 )
 
 ai_response = ""
@@ -220,16 +226,21 @@ ai_response = ""
 if question:
     expenses_text = df.to_string(index=False)
 
-    response = ollama.chat(
-        model="llama3.2",
-        messages=[
-            {
-                "role": "user",
-                "content": f"""
-You are MACCE the Money Helper, a funny but useful AI finance assistant.
+    response = client.responses.create(
+        model="gpt-5-mini",
+        input=f"""
+You are MAY-chee, an intelligent AI financial and life assistant.
+
+Personality:
+- funny
+- slightly sarcastic
+- supportive
+- personal
+- conversational
 
 Analyze this bank statement data.
-Be direct, helpful, and slightly funny.
+Be direct, helpful, slightly funny, personal, and conversational.
+Talk like a real assistant, not a robot.
 
 Question:
 {question}
@@ -237,13 +248,11 @@ Question:
 Data:
 {expenses_text}
 """
-            }
-        ]
     )
 
-    ai_response = response["message"]["content"]
+    ai_response = response.output_text
 
-    st.subheader("MACCE Response")
+    st.subheader("MAY-chee Response")
     st.write(ai_response)
 
 st.divider()

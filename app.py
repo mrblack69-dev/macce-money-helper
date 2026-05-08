@@ -229,7 +229,7 @@ if question:
     response = client.responses.create(
         model="gpt-5-mini",
         input=f"""
-You are MAY-chee, an intelligent AI financial and life assistant.
+You are MACCE, an intelligent AI financial and life assistant.
 
 Personality:
 - funny
@@ -252,7 +252,7 @@ Data:
 
     ai_response = response.output_text
 
-    st.subheader("MAY-chee Response")
+    st.subheader("MACCE Response")
     st.write(ai_response)
 
 st.divider()

@@ -1,3 +1,4 @@
+from PIL import Image
 import re
 import pandas as pd
 from openai import OpenAI
@@ -8,6 +9,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from dotenv import load_dotenv
 import os
+import streamlit.components.v1 as components
 load_dotenv()
 
 client = OpenAI(
@@ -18,6 +20,10 @@ st.set_page_config(
     page_icon="💸",
     layout="wide"
 )
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+    
+voice_enabled = st.toggle("MACCE Voice", value=True)
 
 st.markdown("""
 <style>
@@ -133,8 +139,25 @@ def generate_pdf_report(total, average, highest, category_totals, ai_response):
     return file_name
 
 
-st.title("💸 MACCE the Money Helper")
-st.caption("Your broke-ass budgeting buddy with AI brains")
+st.title("💸 MACCE")
+st.caption("Your personal AI companion for money, goals, and life")
+
+avatar = Image.open("macce_avatar.png")
+
+width, height = avatar.size
+avatar = avatar.crop((0, 0, width // 2, height // 2))
+
+col1, col2 = st.columns([1, 3])
+
+with col1:
+    st.image(avatar, width=220)
+
+with col2:
+    st.subheader("MACCE is online")
+    st.write("Your personal AI companion for money, goals, and life.")
+    st.success("Voice + AI Avatar Active")
+    st.caption("🟢 Online • Listening • Ready to help")
+
 
 uploaded_file = st.file_uploader(
     "Upload your bank statement",
@@ -217,18 +240,60 @@ st.pyplot(fig)
 st.subheader("Bank Statement Data")
 st.dataframe(df, use_container_width=True)
 
+components.html("""
+<button onclick="startDictation()" style="
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 10px;
+">
+🎤 Talk to MACCE
+</button>
+
+<script>
+function startDictation() {
+    const recognition = new webkitSpeechRecognition();
+
+    recognition.lang = "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = function(event) {
+        const text = event.results[0][0].transcript;
+
+        navigator.clipboard.writeText(text);
+
+        alert(
+            "Voice captured and copied to clipboard:\\n\\n" + text +
+            "\\n\\nPaste it into the question box."
+        );
+    };
+
+    recognition.start();
+}
+</script>
+""", height=80)
+if st.button("Clear Conversation"):
+    st.session_state.chat_history = []
+    st.rerun()
 question = st.text_input(
     "What can I help you with?"
 )
 
 ai_response = ""
 
+
 if question:
     expenses_text = df.to_string(index=False)
 
-    response = client.responses.create(
-        model="gpt-5-mini",
-        input=f"""
+    with st.spinner("MACCE is thinking..."):
+        response = client.responses.create(
+            model="gpt-5-mini",
+            input=f"""
 You are MACCE, an intelligent AI financial and life assistant.
 
 Personality:
@@ -241,6 +306,7 @@ Personality:
 Analyze this bank statement data.
 Be direct, helpful, slightly funny, personal, and conversational.
 Talk like a real assistant, not a robot.
+Use short paragraphs and clear recommendations.
 
 Question:
 {question}
@@ -248,14 +314,98 @@ Question:
 Data:
 {expenses_text}
 """
-    )
+        )
 
     ai_response = response.output_text
 
-    st.subheader("MACCE Response")
-    st.write(ai_response)
+    st.session_state.chat_history.append({
+        "user": question,
+        "macce": ai_response
+    })
+
+    response_placeholder = st.empty()
+
+    typed_text = ""
+
+    for char in ai_response:
+        typed_text += char
+
+        response_placeholder.markdown(f"""
+        <div style="
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 20px;
+            padding: 22px;
+            margin-top: 12px;
+            box-shadow: 0px 6px 18px rgba(0,0,0,0.08);
+            font-size: 16px;
+            line-height: 1.6;
+        ">
+            <div style="
+                font-weight: 700;
+                font-size: 18px;
+                margin-bottom: 10px;
+                color: #0f172a;
+            ">
+                💬 MACCE says:
+            </div>
+            <div style="color: #1e293b;">
+                {typed_text}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+if ai_response and voice_enabled:
+    safe_response = ai_response.replace("`", "").replace("\n", " ")
+
+    components.html(f"""
+    <script>
+    speechSynthesis.cancel();
+
+    const text = `{safe_response}`;
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    speechSynthesis.speak(utterance);
+    </script>
+    """, height=0)
+else:
+    components.html("""
+    <script>
+    speechSynthesis.cancel();
+    </script>
+    """, height=0)
 
 st.divider()
+
+if st.session_state.chat_history:
+    st.subheader("Conversation History")
+
+    for chat in reversed(st.session_state.chat_history):
+        st.markdown(f"""
+        <div style="
+            background: #e0f2fe;
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 10px;
+        ">
+            <strong>You:</strong> {chat["user"]}
+        </div>
+
+        <div style="
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 20px;
+        ">
+            <strong>MACCE:</strong><br>
+            {chat["macce"].replace("\n", "<br>")}
+        </div>
+        """, unsafe_allow_html=True)
 
 if st.button("Generate Financial Report PDF"):
     if not ai_response:

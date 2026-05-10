@@ -1,11 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import {
-  useState,
-  useEffect,
-  useRef,
-} from "react"
+import { useState, useEffect, useRef } from "react"
 
 export default function Home() {
   const [message, setMessage] = useState("")
@@ -19,14 +15,56 @@ export default function Home() {
     },
   ])
 
-  const chatEndRef =
-    useRef<HTMLDivElement | null>(null)
+  const chatEndRef = useRef<HTMLDivElement | null>(null)
+  const audioQueue = useRef<HTMLAudioElement[]>([])
+  const isPlaying = useRef(false)
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({
       behavior: "smooth",
     })
   }, [chat, loading])
+
+  async function playAudioQueue() {
+    if (isPlaying.current || audioQueue.current.length === 0) return
+
+    isPlaying.current = true
+
+    const audio = audioQueue.current.shift()
+
+    if (!audio) {
+      isPlaying.current = false
+      return
+    }
+
+    audio.onended = () => {
+      isPlaying.current = false
+      playAudioQueue()
+    }
+
+    await audio.play()
+  }
+
+  async function generateVoice(text: string) {
+    if (!text.trim()) return
+
+    const voiceRes = await fetch("/api/voice", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text,
+      }),
+    })
+
+    const audioBlob = await voiceRes.blob()
+    const audioUrl = URL.createObjectURL(audioBlob)
+    const audio = new Audio(audioUrl)
+
+    audioQueue.current.push(audio)
+    playAudioQueue()
+  }
 
   async function sendMessage() {
     if (!message.trim()) return
@@ -36,10 +74,7 @@ export default function Home() {
       content: message,
     }
 
-    setChat((prev) => [
-      ...prev,
-      userMessage,
-    ])
+    setChat((prev) => [...prev, userMessage])
 
     const currentMessage = message
 
@@ -50,20 +85,19 @@ export default function Home() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
-          "Content-Type":
-            "application/json",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           message: currentMessage,
         }),
       })
 
-      const reader =
-        res.body?.getReader()
+      const reader = res.body?.getReader()
 
       if (!reader) return
 
       let fullText = ""
+      let spokenText = ""
 
       setChat((prev) => [
         ...prev,
@@ -74,36 +108,45 @@ export default function Home() {
       ])
 
       while (true) {
-        const { done, value } =
-          await reader.read()
+        const { done, value } = await reader.read()
 
         if (done) break
 
-        const chunk =
-          new TextDecoder().decode(value)
+        const chunk = new TextDecoder().decode(value)
 
         fullText += chunk
 
         setChat((prev) => {
           const updated = [...prev]
 
-          updated[
-            updated.length - 1
-          ] = {
+          updated[updated.length - 1] = {
             role: "assistant",
             content: fullText,
           }
 
           return updated
         })
+
+        const sentences = fullText.match(/[^.!?]+[.!?]+/g)
+
+        if (sentences) {
+          const joined = sentences.join(" ")
+
+          if (joined.length > spokenText.length) {
+            const newSpeech = joined.slice(spokenText.length)
+
+            spokenText = joined
+
+            generateVoice(newSpeech)
+          }
+        }
       }
     } catch (error) {
       setChat((prev) => [
         ...prev,
         {
           role: "assistant",
-          content:
-            "Something broke. Try again in a second.",
+          content: "Something broke. Try again in a second.",
         },
       ])
     }
@@ -115,13 +158,10 @@ export default function Home() {
     <main className="min-h-screen bg-[#050b16] text-white flex overflow-hidden">
       <aside className="w-72 bg-[#07111f]/90 border-r border-cyan-400/10 p-6 flex flex-col justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-cyan-300 mb-2">
-            MACCE
-          </h1>
+          <h1 className="text-4xl font-bold text-cyan-300 mb-2">MACCE</h1>
 
           <p className="text-gray-400 mb-10">
-            Your AI companion for money,
-            goals, and life
+            Your AI companion for money, goals, and life
           </p>
 
           <nav className="space-y-4">
@@ -149,32 +189,24 @@ export default function Home() {
         </div>
 
         <div className="bg-white/5 border border-cyan-300/20 rounded-3xl p-5">
-          <p className="text-cyan-300 font-semibold">
-            MACCE is online
-          </p>
+          <p className="text-cyan-300 font-semibold">MACCE is online</p>
 
           <p className="text-gray-400 text-sm mt-2">
-            Always here. Always
-            learning.
+            Always here. Always learning.
           </p>
         </div>
       </aside>
 
-      <section className="flex-1 p-8 relative">
+      <section className="flex-1 p-8 relative overflow-y-auto">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-400/10 blur-[120px] rounded-full"></div>
-
         <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] bg-purple-500/10 blur-[120px] rounded-full"></div>
 
         <div className="relative z-10 flex justify-between items-start mb-8">
           <div>
-            <h2 className="text-5xl font-bold mb-3">
-              Welcome back
-            </h2>
+            <h2 className="text-5xl font-bold mb-3">Welcome back</h2>
 
             <p className="text-gray-400 text-lg">
-              Here’s your money,
-              goals, and life
-              overview.
+              Here’s your money, goals, and life overview.
             </p>
           </div>
 
@@ -224,47 +256,33 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-6">
               <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl">
                 <h3 className="text-xl font-semibold mb-6">
-                  Cash Flow
-                  Overview
+                  Cash Flow Overview
                 </h3>
 
                 <div className="h-64 flex items-end gap-3">
-                  {[
-                    35, 42, 40, 52,
-                    50, 63, 70, 76,
-                    82, 90, 95, 100,
-                  ].map((height, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 flex flex-col justify-end"
-                    >
-                      <div
-                        className="rounded-t-xl bg-gradient-to-t from-cyan-500 to-green-400 shadow-[0_0_18px_rgba(34,211,238,0.35)]"
-                        style={{
-                          height: `${height}%`,
-                        }}
-                      ></div>
-                    </div>
-                  ))}
+                  {[35, 42, 40, 52, 50, 63, 70, 76, 82, 90, 95, 100].map(
+                    (height, i) => (
+                      <div key={i} className="flex-1 flex flex-col justify-end">
+                        <div
+                          className="rounded-t-xl bg-gradient-to-t from-cyan-500 to-green-400 shadow-[0_0_18px_rgba(34,211,238,0.35)]"
+                          style={{ height: `${height}%` }}
+                        ></div>
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl">
                 <h3 className="text-xl font-semibold mb-6">
-                  Spending
-                  Breakdown
+                  Spending Breakdown
                 </h3>
 
                 <div className="flex items-center justify-center h-64">
                   <div className="w-44 h-44 rounded-full border-[28px] border-cyan-400 border-t-purple-500 border-r-blue-500 border-b-green-400 flex items-center justify-center">
                     <div className="text-center">
-                      <p className="text-2xl font-bold">
-                        $2,845
-                      </p>
-
-                      <p className="text-gray-400 text-sm">
-                        Total
-                      </p>
+                      <p className="text-2xl font-bold">$2,845</p>
+                      <p className="text-gray-400 text-sm">Total</p>
                     </div>
                   </div>
                 </div>
@@ -294,34 +312,18 @@ export default function Home() {
 
               <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
                 <h3 className="text-xl font-semibold mb-5">
-                  Recent
-                  Transactions
+                  Recent Transactions
                 </h3>
 
-                <Transaction
-                  name="Starbucks"
-                  amount="-$4.75"
-                  bad
-                />
-
-                <Transaction
-                  name="Salary Deposit"
-                  amount="+$2,935.00"
-                  good
-                />
-
-                <Transaction
-                  name="Amazon"
-                  amount="-$89.99"
-                  bad
-                />
-
-                <Transaction
-                  name="Uber"
-                  amount="-$23.45"
-                  bad
-                />
+                <Transaction name="Starbucks" amount="-$4.75" bad />
+                <Transaction name="Salary Deposit" amount="+$2,935.00" good />
+                <Transaction name="Amazon" amount="-$89.99" bad />
+                <Transaction name="Uber" amount="-$23.45" bad />
               </div>
+            </div>
+
+            <div className="bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-cyan-300/20 rounded-3xl p-5 text-cyan-200">
+              ✨ Small steps today, big freedom tomorrow.
             </div>
           </div>
 
@@ -330,9 +332,7 @@ export default function Home() {
               <motion.div
                 className="absolute w-[420px] h-[420px] bg-cyan-400/20 blur-[80px] rounded-full"
                 animate={{
-                  opacity: [
-                    0.25, 0.45, 0.25,
-                  ],
+                  opacity: [0.25, 0.45, 0.25],
                   scale: [1, 1.08, 1],
                 }}
                 transition={{
@@ -346,9 +346,7 @@ export default function Home() {
                 className="absolute bottom-6 w-72 h-10 rounded-full border border-cyan-300/40 bg-cyan-400/10 blur-sm"
                 animate={{
                   scale: [1, 1.08, 1],
-                  opacity: [
-                    0.45, 0.75, 0.45,
-                  ],
+                  opacity: [0.45, 0.75, 0.45],
                 }}
                 transition={{
                   duration: 3,
@@ -363,9 +361,7 @@ export default function Home() {
                 className="relative w-[430px] drop-shadow-[0_0_45px_rgba(34,211,238,0.45)]"
                 animate={{
                   y: [0, -28, 0],
-                  scale: [
-                    1, 1.025, 1,
-                  ],
+                  scale: [1, 1.025, 1],
                 }}
                 transition={{
                   duration: 4,
@@ -376,31 +372,25 @@ export default function Home() {
             </div>
 
             <div className="bg-white/5 border border-cyan-300/20 rounded-3xl p-6 backdrop-blur-xl shadow-[0_0_30px_rgba(34,211,238,0.08)]">
-              <h3 className="text-xl font-semibold mb-4">
-                Ask MACCE ✨
-              </h3>
+              <h3 className="text-xl font-semibold mb-4">Ask MACCE ✨</h3>
 
               <div className="space-y-3 h-[280px] overflow-y-auto mb-4 pr-2">
-                {chat.map(
-                  (msg, index) => (
-                    <div
-                      key={index}
-                      className={`rounded-2xl p-4 ${
-                        msg.role ===
-                        "assistant"
-                          ? "bg-cyan-500/10 text-gray-200"
-                          : "bg-purple-500/10 text-white"
-                      }`}
-                    >
-                      {msg.content}
-                    </div>
-                  )
-                )}
+                {chat.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={`rounded-2xl p-4 ${
+                      msg.role === "assistant"
+                        ? "bg-cyan-500/10 text-gray-200"
+                        : "bg-purple-500/10 text-white"
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                ))}
 
                 {loading && (
                   <div className="bg-cyan-500/10 rounded-2xl p-4 text-gray-300">
-                    MACCE is
-                    thinking...
+                    MACCE is thinking...
                   </div>
                 )}
 
@@ -410,15 +400,9 @@ export default function Home() {
               <input
                 type="text"
                 value={message}
-                onChange={(e) =>
-                  setMessage(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={(e) => {
-                  if (
-                    e.key === "Enter"
-                  ) {
+                  if (e.key === "Enter") {
                     sendMessage()
                   }
                 }}
@@ -454,6 +438,14 @@ export default function Home() {
                 Send
               </button>
             </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
+              <h3 className="text-xl font-semibold mb-4">Upcoming Bills</h3>
+
+              <Bill name="Rent" date="Jun 1" amount="$1,200.00" />
+              <Bill name="Car Insurance" date="Jun 5" amount="$120.00" />
+              <Bill name="Phone Bill" date="Jun 8" amount="$65.00" />
+            </div>
           </div>
         </div>
       </section>
@@ -467,24 +459,21 @@ function Card({
   note,
   good,
   bad,
-}: any) {
+}: {
+  title: string
+  value: string
+  note: string
+  good?: boolean
+  bad?: boolean
+}) {
   return (
     <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl">
-      <p className="text-gray-400 mb-3">
-        {title}
-      </p>
-
-      <h3 className="text-3xl font-bold mb-3">
-        {value}
-      </h3>
+      <p className="text-gray-400 mb-3">{title}</p>
+      <h3 className="text-3xl font-bold mb-3">{value}</h3>
 
       <p
         className={
-          good
-            ? "text-green-400"
-            : bad
-            ? "text-orange-400"
-            : "text-gray-400"
+          good ? "text-green-400" : bad ? "text-orange-400" : "text-gray-400"
         }
       >
         {note}
@@ -498,16 +487,18 @@ function Goal({
   amount,
   progress,
   width,
-}: any) {
+}: {
+  title: string
+  amount: string
+  progress: string
+  width: string
+}) {
   return (
     <div className="mb-6">
       <div className="flex justify-between mb-2">
         <div>
           <p>{title}</p>
-
-          <p className="text-gray-400 text-sm">
-            {amount}
-          </p>
+          <p className="text-gray-400 text-sm">{amount}</p>
         </div>
 
         <p>{progress}</p>
@@ -528,22 +519,44 @@ function Transaction({
   amount,
   good,
   bad,
-}: any) {
+}: {
+  name: string
+  amount: string
+  good?: boolean
+  bad?: boolean
+}) {
   return (
     <div className="flex justify-between border-b border-white/10 py-3">
       <p>{name}</p>
 
       <p
         className={
-          good
-            ? "text-green-400"
-            : bad
-            ? "text-red-400"
-            : "text-gray-300"
+          good ? "text-green-400" : bad ? "text-red-400" : "text-gray-300"
         }
       >
         {amount}
       </p>
+    </div>
+  )
+}
+
+function Bill({
+  name,
+  date,
+  amount,
+}: {
+  name: string
+  date: string
+  amount: string
+}) {
+  return (
+    <div className="flex justify-between py-3 border-b border-white/10">
+      <div>
+        <p>{name}</p>
+        <p className="text-gray-400 text-sm">{date}</p>
+      </div>
+
+      <p>{amount}</p>
     </div>
   )
 }

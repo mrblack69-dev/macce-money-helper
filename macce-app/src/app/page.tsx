@@ -30,7 +30,7 @@ export default function Home() {
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const [voiceEnabled, setVoiceEnabled] = useState(true)
+  const [voiceEnabled, setVoiceEnabled] = useState(false)
 
 const [theme, setTheme] = useState("Neon Dark")
 
@@ -452,8 +452,8 @@ setLoggedIn(false)
       </aside>
 
       <section className="flex-1 p-4 lg:p-8 relative overflow-y-auto">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-400/10 blur-[120px] rounded-full"></div>
-        <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] bg-purple-500/10 blur-[120px] rounded-full"></div>
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-400/10 blur-[40px] rounded-full"></div>
+        <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] bg-purple-500/10 blur-[40px] rounded-full"></div>
 
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start mb-8 gap-6">
           <div>
@@ -508,7 +508,7 @@ setLoggedIn(false)
           <div className="xl:col-span-4 space-y-6">
             <div className="relative min-h-[360px] lg:min-h-[520px] flex items-center justify-center">
               <motion.div
-                className="absolute w-[260px] h-[260px] lg:w-[420px] lg:h-[420px] bg-cyan-400/20 blur-[80px] rounded-full"
+                className="absolute w-[260px] h-[260px] lg:w-[420px] lg:h-[420px] bg-cyan-400/20 blur-[40px] rounded-full"
                 animate={{
                   opacity: [0.25, 0.45, 0.25],
                   scale: [1, 1.08, 1],
@@ -534,13 +534,20 @@ setLoggedIn(false)
               />
 
               <motion.img
+                animate={
+                  typeof window !== "undefined" &&
+                  window.innerWidth < 768
+                    ? {}
+                    : {
+                        y: [0, -28, 0],
+                        scale: [1, 1.025, 1],
+                      }
+                }
                 src="/macce.png"
                 alt="MACCE"
                 className="relative w-[260px] sm:w-[320px] lg:w-[430px] drop-shadow-[0_0_45px_rgba(34,211,238,0.45)]"
-                animate={{
-                  y: [0, -28, 0],
-                  scale: [1, 1.025, 1],
-                }}
+                
+              
                 transition={{
                   duration: 4,
                   repeat: Infinity,

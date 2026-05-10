@@ -7,19 +7,24 @@ const client = new OpenAI({
 let conversationHistory: any[] = []
 
 export async function POST(req: Request) {
-  const body = await req.json()
+  try {
+    const body = await req.json()
 
-  conversationHistory.push({
-    role: "user",
-    content: body.message,
-  })
+const personality =
+  body.personality ||
+  "Companion"
 
-  const stream = await client.responses.stream({
-    model: "gpt-5-mini",
-    input: [
-      {
-        role: "system",
-        content: `
+    conversationHistory.push({
+      role: "user",
+      content: body.message,
+    })
+
+    const response = await client.responses.create({
+      model: "gpt-5-mini",
+      input: [
+        {
+          role: "system",
+          content: `
 You are MACCE, an advanced AI companion focused on money, goals, productivity, and life.
 
 Your personality:
@@ -55,44 +60,46 @@ Behavior:
 - if the user is casual, be casual too
 
 You are designed to feel present, intelligent, and human-like.
+Current personality mode:
+${personality}
+
+Personality modes:
+- Companion = calm, smart, conversational
+- Coach = direct, motivating, disciplined
+- Chill = relaxed, casual, friendly
+- Analyst = logical, concise, data-focused
+
+Adapt your tone naturally based on the selected mode.
 `,
+        },
+        ...conversationHistory,
+      ],
+    })
+
+    const aiMessage = response.output_text
+
+    conversationHistory.push({
+      role: "assistant",
+      content: aiMessage,
+    })
+
+    if (conversationHistory.length > 20) {
+      conversationHistory = conversationHistory.slice(-20)
+    }
+
+    return Response.json({
+      message: aiMessage,
+    })
+  } catch (error) {
+    console.error(error)
+
+    return Response.json(
+      {
+        message: "MACCE hit a backend error. Check your terminal for details.",
       },
-      ...conversationHistory,
-    ],
-  })
-
-  const encoder = new TextEncoder()
-
-  const readableStream = new ReadableStream({
-    async start(controller) {
-      let fullResponse = ""
-
-      for await (const event of stream) {
-        if (event.type === "response.output_text.delta") {
-          const chunk = event.delta
-
-          fullResponse += chunk
-
-          controller.enqueue(encoder.encode(chunk))
-        }
+      {
+        status: 500,
       }
-
-      conversationHistory.push({
-        role: "assistant",
-        content: fullResponse,
-      })
-
-      if (conversationHistory.length > 20) {
-        conversationHistory = conversationHistory.slice(-20)
-      }
-
-      controller.close()
-    },
-  })
-
-  return new Response(readableStream, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-    },
-  })
+    )
+  }
 }

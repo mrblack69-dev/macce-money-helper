@@ -1,5 +1,6 @@
 "use client"
 
+import { usePlaidLink } from "react-plaid-link"
 import { supabase } from "@/lib/supabase"
 import { motion } from "framer-motion"
 import { useEffect, useRef, useState } from "react"
@@ -20,6 +21,7 @@ const tabs = [
 ]
 
 export default function Home() {
+  const [linkToken, setLinkToken] = useState("")
   const [loggedIn, setLoggedIn] = useState(false)
   const [signupMode, setSignupMode] = useState(false)
   const [activeTab, setActiveTab] = useState("Dashboard")
@@ -86,6 +88,62 @@ const [profileSaved, setProfileSaved] = useState(false)
     loadProfile()
   }
 }, [loggedIn])
+useEffect(() => {
+  async function createLinkToken() {
+    try {
+      const res = await fetch(
+        "/api/plaid/create-link-token",
+        {
+          method: "POST",
+        }
+      )
+
+      const data = await res.json()
+
+      setLinkToken(data.link_token)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  if (loggedIn) {
+    createLinkToken()
+  }
+}, [loggedIn])
+const { open, ready } = usePlaidLink({
+  token: linkToken || null,
+
+  onSuccess: async (
+  public_token: string,
+  metadata: any
+) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    await fetch(
+      "/api/plaid/exchange-public-token",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          public_token,
+          user_id: user.id,
+          institution_name:
+            metadata.institution
+              ?.name,
+        }),
+      }
+    )
+
+    alert("Bank connected!")
+  },
+})
 
   function stopVoice() {
     audioQueue.current = []
@@ -502,7 +560,11 @@ const [profileSaved, setProfileSaved] = useState(false)
 
         <div className="relative z-10 grid grid-cols-1 xl:grid-cols-12 gap-6">
           <div className="xl:col-span-8 space-y-6">
-            {activeTab === "Dashboard" && <DashboardContent />}
+            {activeTab === "Dashboard" && (
+  <DashboardContent 
+  openPlaid={open} plaidReady={ready} 
+  />
+)}
             {activeTab === "Transactions" && <TransactionsContent />}
             {activeTab === "Budget" && <BudgetContent />}
             {activeTab === "Goals" && <GoalsContent />}
@@ -656,7 +718,13 @@ function getThemeBackground(theme: string) {
   return "bg-[#050b16]"
 }
 
-function DashboardContent() {
+function DashboardContent({
+  openPlaid,
+  plaidReady,
+}: {
+  openPlaid: any
+  plaidReady: boolean
+}) {
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
@@ -665,6 +733,14 @@ function DashboardContent() {
         <Card title="Expenses" value="$2,845.50" note="↘ 3.2% this month" bad />
         <Card title="Savings Rate" value="32%" note="↗ 6% this month" good />
       </div>
+
+      <button
+  onClick={() => openPlaid()}
+  disabled={!plaidReady}
+  className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl px-5 py-4 font-semibold hover:scale-[1.01] transition disabled:opacity-50"
+>
+  Connect Bank
+</button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CashFlowCard />

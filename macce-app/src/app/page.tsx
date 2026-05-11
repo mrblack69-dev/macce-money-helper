@@ -141,9 +141,20 @@ const { open, ready } = usePlaidLink({
       }
     )
 
+await fetch("/api/plaid/sync-transactions", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    user_id: user.id,
+  }),
+})
+
     alert("Bank connected!")
   },
 })
+
 
   function stopVoice() {
     audioQueue.current = []

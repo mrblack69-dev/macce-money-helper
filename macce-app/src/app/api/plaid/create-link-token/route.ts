@@ -9,7 +9,7 @@ export async function POST() {
           client_user_id: "macce-user",
         },
         client_name: "MACCE",
-        products: ["transactions"],
+        products: ["transactions"] as any,
         country_codes: ["US"],
         language: "en",
       })

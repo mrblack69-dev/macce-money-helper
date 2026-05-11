@@ -56,6 +56,36 @@ const [profileSaved, setProfileSaved] = useState(false)
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [chat, loading])
+  useEffect(() => {
+  async function loadProfile() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single()
+
+    console.log("loaded profile:", data)
+    console.log("profile load error:", error)
+
+    if (error || !data) return
+
+    setFirstName(data.first_name || "")
+    setLastName(data.last_name || "")
+    setPhone(data.phone || "")
+    setMainGoal(data.main_goal || "")
+    setIncomeRange(data.income_range || "")
+  }
+
+  if (loggedIn) {
+    loadProfile()
+  }
+}, [loggedIn])
 
   function stopVoice() {
     audioQueue.current = []
@@ -199,9 +229,15 @@ const [profileSaved, setProfileSaved] = useState(false)
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: currentMessage,
-          personality,
-        }),
+  message: currentMessage,
+  personality,
+  profile: {
+    firstName,
+    lastName,
+    mainGoal,
+    incomeRange,
+  },
+}),
       })
 
       if (!res.ok || !res.body) {
@@ -442,10 +478,12 @@ const [profileSaved, setProfileSaved] = useState(false)
             </h2>
 
             <p className="text-gray-400 text-lg">
-              {activeTab === "Dashboard"
-                ? "Here’s your money, goals, and life overview."
-                : `Manage your ${activeTab.toLowerCase()} with MACCE.`}
-            </p>
+  {activeTab === "Dashboard"
+    ? firstName
+      ? `Here’s your money, goals, and life overview, ${firstName}.`
+      : "Here’s your money, goals, and life overview."
+    : `Manage your ${activeTab.toLowerCase()} with MACCE.`}
+</p>
           </div>
 
           <div className="flex gap-4 text-gray-300">

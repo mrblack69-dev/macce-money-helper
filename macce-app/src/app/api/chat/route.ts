@@ -9,6 +9,7 @@ let conversationHistory: any[] = []
 export async function POST(req: Request) {
   try {
     const body = await req.json()
+    const profile = body.profile || {}
 
 const personality =
   body.personality ||
@@ -60,6 +61,15 @@ Behavior:
 - if the user is casual, be casual too
 
 You are designed to feel present, intelligent, and human-like.
+User profile:
+- First Name: ${profile.firstName || "Unknown"}
+- Last Name: ${profile.lastName || "Unknown"}
+- Main Goal: ${profile.mainGoal || "Unknown"}
+- Income Range: ${profile.incomeRange || "Unknown"}
+
+Use this information naturally when helpful.
+Do not repeat profile information awkwardly.
+Reference the user's goals and name naturally in conversation.
 Current personality mode:
 ${personality}
 

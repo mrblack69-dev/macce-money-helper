@@ -30,12 +30,15 @@ export default function Home() {
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const [voiceEnabled, setVoiceEnabled] = useState(false)
-
-const [theme, setTheme] = useState("Neon Dark")
-
-const [personality, setPersonality] =
-  useState("Companion")
+  const [voiceEnabled, setVoiceEnabled] = useState(true)
+  const [theme, setTheme] = useState("Neon Dark")
+  const [personality, setPersonality] = useState("Companion")
+  const [firstName, setFirstName] = useState("")
+const [lastName, setLastName] = useState("")
+const [phone, setPhone] = useState("")
+const [mainGoal, setMainGoal] = useState("")
+const [incomeRange, setIncomeRange] = useState("")
+const [profileSaved, setProfileSaved] = useState(false)
 
   const [chat, setChat] = useState<ChatMessage[]>([
     {
@@ -51,64 +54,8 @@ const [personality, setPersonality] =
   const isPlaying = useRef(false)
 
   useEffect(() => {
-  chatEndRef.current?.scrollIntoView({
-    behavior: "smooth",
-  })
-}, [chat, loading])
-
-  useEffect(() => {
-  supabase.auth.getSession().then(({ data }) => {
-    if (data.session) {
-      setLoggedIn(true)
-    }
-  })
-
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange(
-    (_event, session) => {
-      setLoggedIn(!!session)
-    }
-  )
-
-  return () => {
-    subscription.unsubscribe()
-  }
-}, [])
-
-useEffect(() => {
-  async function loadChats() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return
-
-    const { data, error } = await supabase
-      .from("chats")
-      .select("*")
-      .order("created_at", {
-        ascending: true,
-      })
-
-    if (error || !data) return
-
-    const formatted = data.map((msg) => ({
-      role: msg.role as
-        | "user"
-        | "assistant",
-      content: msg.content,
-    }))
-
-    if (formatted.length > 0) {
-      setChat(formatted)
-    }
-  }
-
-  if (loggedIn) {
-    loadChats()
-  }
-}, [loggedIn])
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [chat, loading])
 
   function stopVoice() {
     audioQueue.current = []
@@ -177,21 +124,58 @@ useEffect(() => {
       audioQueue.current.push(audio)
       playAudioQueue()
     } catch {
-      // voice should never break chat
+      // Voice should never break chat
     }
   }
 
+  async function saveProfile() {
+  console.log("saveProfile running")
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  console.log("user:", user)
+  console.log("userError:", userError)
+
+  if (!user) {
+    alert("No logged in user found")
+    return
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .upsert({
+      id: user.id,
+      first_name: firstName,
+      last_name: lastName,
+      phone: phone,
+      main_goal: mainGoal,
+      income_range: incomeRange,
+    })
+    .select()
+
+  console.log("profile save data:", data)
+  console.log("profile save error:", error)
+
+  if (error) {
+    alert(error.message)
+    return
+  }
+
+  setProfileSaved(true)
+
+  setTimeout(() => {
+    setProfileSaved(false)
+  }, 2500)
+}
   async function sendMessage() {
     if (!message.trim() || loading) return
 
     stopVoice()
 
     const currentMessage = message.trim()
-    const {
-  data: { user },
-} = await supabase.auth.getUser()
-
-if (!user) return
 
     setChat((prev) => [
       ...prev,
@@ -207,13 +191,6 @@ if (!user) return
 
     setMessage("")
     setLoading(true)
-    await supabase
-  .from("chats")
-  .insert({
-    user_id: user.id,
-    role: "user",
-    content: currentMessage,
-  })
 
     try {
       const res = await fetch("/api/chat", {
@@ -222,9 +199,9 @@ if (!user) return
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-  message: currentMessage,
-  personality,
-}),
+          message: currentMessage,
+          personality,
+        }),
       })
 
       if (!res.ok || !res.body) {
@@ -275,13 +252,6 @@ if (!user) return
         }
       }
 
-      await supabase
-  .from("chats")
-  .insert({
-    user_id: user.id,
-    role: "assistant",
-    content: fullText,
-  })
       const leftover = fullText.slice(spokenText.length).trim()
 
       if (leftover) {
@@ -305,7 +275,7 @@ if (!user) return
 
   if (!loggedIn) {
     return (
-      <main className="min-h-screen bg-[#050b16] text-white flex items-center justify-center p-6 overflow-hidden">
+      <main className={`min-h-screen ${getThemeBackground(theme)} text-white flex items-center justify-center p-6 overflow-hidden`}>
         <div className="absolute w-[700px] h-[700px] bg-cyan-400/10 blur-[130px] rounded-full"></div>
 
         <div className="relative w-full max-w-md bg-white/5 border border-cyan-400/20 rounded-3xl p-8 backdrop-blur-xl shadow-[0_0_50px_rgba(34,211,238,0.08)]">
@@ -350,53 +320,20 @@ if (!user) return
             />
 
             <button
-  onClick={async () => {
-    if (signupMode) {
-      const { error } =
-        await supabase.auth.signUp({
-          email,
-          password,
-        })
+              onClick={() => setLoggedIn(true)}
+              className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl py-4 font-semibold hover:scale-[1.02] transition"
+            >
+              {signupMode ? "Create Account" : "Login"}
+            </button>
 
-      if (error) {
-        alert(error.message)
-        return
-      }
-
-      alert(
-        "Check your email to confirm your account"
-      )
-    } else {
-      const { error } =
-        await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-
-      if (error) {
-        alert(error.message)
-        return
-      }
-
-      setLoggedIn(true)
-    }
-  }}
-  className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl py-4 font-semibold hover:scale-[1.02] transition"
->
-  {signupMode
-    ? "Create Account"
-    : "Login"}
-</button>
-
-<button
-  onClick={() => setSignupMode(!signupMode)}
-  className="text-sm text-gray-400 w-full text-center hover:text-cyan-300 transition"
->
-  {signupMode
-    ? "Already have an account? Login"
-    : "Need an account? Create one"}
-</button>
-
+            <button
+              onClick={() => setSignupMode(!signupMode)}
+              className="text-sm text-gray-400 w-full text-center hover:text-cyan-300 transition"
+            >
+              {signupMode
+                ? "Already have an account? Login"
+                : "Need an account? Create one"}
+            </button>
           </div>
         </div>
       </main>
@@ -404,7 +341,7 @@ if (!user) return
   }
 
   return (
-    <main className="min-h-screen bg-[#050b16] text-white flex flex-col lg:flex-row overflow-hidden">
+    <main className={`min-h-screen ${getThemeBackground(theme)} text-white flex flex-col lg:flex-row overflow-hidden`}>
       <aside className="w-full lg:w-72 bg-[#07111f]/90 border-r border-cyan-400/10 p-6 flex flex-col justify-between">
         <div>
           <h1 className="text-4xl font-bold text-cyan-300 mb-2">MACCE</h1>
@@ -439,10 +376,9 @@ if (!user) return
           </div>
 
           <button
-            onClick={async () => {
+            onClick={() => {
               stopVoice()
-              await supabase.auth.signOut()
-setLoggedIn(false)
+              setLoggedIn(false)
             }}
             className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition text-left"
           >
@@ -452,8 +388,8 @@ setLoggedIn(false)
       </aside>
 
       <section className="flex-1 p-4 lg:p-8 relative overflow-y-auto">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-400/10 blur-[40px] rounded-full"></div>
-        <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] bg-purple-500/10 blur-[40px] rounded-full"></div>
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-400/10 blur-[120px] rounded-full"></div>
+        <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] bg-purple-500/10 blur-[120px] rounded-full"></div>
 
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start mb-8 gap-6">
           <div>
@@ -485,22 +421,32 @@ setLoggedIn(false)
         <div className="relative z-10 grid grid-cols-1 xl:grid-cols-12 gap-6">
           <div className="xl:col-span-8 space-y-6">
             {activeTab === "Dashboard" && <DashboardContent />}
-
             {activeTab === "Transactions" && <TransactionsContent />}
-
             {activeTab === "Budget" && <BudgetContent />}
-
             {activeTab === "Goals" && <GoalsContent />}
-
             {activeTab === "AI Insights" && <InsightsContent />}
-
             {activeTab === "Reports" && <ReportsContent />}
-
             {activeTab === "Settings" && (
               <SettingsContent
+                firstName={firstName}
+                setFirstName={setFirstName}
+                lastName={lastName}
+                setLastName={setLastName}
+                phone={phone}
+                setPhone={setPhone}
+                mainGoal={mainGoal}
+                setMainGoal={setMainGoal}
+                incomeRange={incomeRange}
+                setIncomeRange={setIncomeRange}
+                saveProfile={saveProfile}
+                profileSaved={profileSaved}
                 voiceEnabled={voiceEnabled}
                 setVoiceEnabled={setVoiceEnabled}
                 stopVoice={stopVoice}
+                theme={theme}
+                setTheme={setTheme}
+                personality={personality}
+                setPersonality={setPersonality}
               />
             )}
           </div>
@@ -508,7 +454,7 @@ setLoggedIn(false)
           <div className="xl:col-span-4 space-y-6">
             <div className="relative min-h-[360px] lg:min-h-[520px] flex items-center justify-center">
               <motion.div
-                className="absolute w-[260px] h-[260px] lg:w-[420px] lg:h-[420px] bg-cyan-400/20 blur-[40px] rounded-full"
+                className="absolute w-[260px] h-[260px] lg:w-[420px] lg:h-[420px] bg-cyan-400/20 blur-[80px] rounded-full"
                 animate={{
                   opacity: [0.25, 0.45, 0.25],
                   scale: [1, 1.08, 1],
@@ -534,20 +480,13 @@ setLoggedIn(false)
               />
 
               <motion.img
-                animate={
-                  typeof window !== "undefined" &&
-                  window.innerWidth < 768
-                    ? {}
-                    : {
-                        y: [0, -28, 0],
-                        scale: [1, 1.025, 1],
-                      }
-                }
                 src="/macce.png"
                 alt="MACCE"
                 className="relative w-[260px] sm:w-[320px] lg:w-[430px] drop-shadow-[0_0_45px_rgba(34,211,238,0.45)]"
-                
-              
+                animate={{
+                  y: [0, -28, 0],
+                  scale: [1, 1.025, 1],
+                }}
                 transition={{
                   duration: 4,
                   repeat: Infinity,
@@ -626,6 +565,13 @@ setLoggedIn(false)
       </section>
     </main>
   )
+}
+
+function getThemeBackground(theme: string) {
+  if (theme === "Ocean") return "bg-[#031b26]"
+  if (theme === "Midnight") return "bg-[#020617]"
+  if (theme === "Purple") return "bg-[#12051f]"
+  return "bg-[#050b16]"
 }
 
 function DashboardContent() {
@@ -727,60 +673,179 @@ function ReportsContent() {
 }
 
 function SettingsContent({
+    firstName,
+  setFirstName,
+  lastName,
+  setLastName,
+  phone,
+  setPhone,
+  mainGoal,
+  setMainGoal,
+  incomeRange,
+  setIncomeRange,
+  saveProfile,
+  profileSaved,
   voiceEnabled,
   setVoiceEnabled,
   stopVoice,
+  theme,
+  setTheme,
+  personality,
+  setPersonality,
 }: {
+    firstName: string
+  setFirstName: (value: string) => void
+  lastName: string
+  setLastName: (value: string) => void
+  phone: string
+  setPhone: (value: string) => void
+  mainGoal: string
+  setMainGoal: (value: string) => void
+  incomeRange: string
+  setIncomeRange: (value: string) => void
+  saveProfile: () => void
+  profileSaved: boolean
   voiceEnabled: boolean
   setVoiceEnabled: (value: boolean) => void
   stopVoice: () => void
+  theme: string
+  setTheme: (value: string) => void
+  personality: string
+  setPersonality: (value: string) => void
 }) {
   return (
     <div className="space-y-6">
       <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
         <h3 className="text-2xl font-semibold mb-6">Settings</h3>
 
-        <div className="flex justify-between items-center border-b border-white/10 py-4">
-          <div>
-            <p className="font-semibold">MACCE Voice</p>
-            <p className="text-gray-400 text-sm">
-              Turn AI voice playback on or off.
+        <div className="space-y-6">
+          <div className="flex justify-between items-center border-b border-white/10 py-4">
+            <div>
+              <p className="font-semibold">MACCE Voice</p>
+              <p className="text-gray-400 text-sm">
+                Turn AI voice playback on or off.
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                stopVoice()
+                setVoiceEnabled(!voiceEnabled)
+              }}
+              className={`rounded-2xl px-5 py-3 ${
+                voiceEnabled
+                  ? "bg-cyan-500/20 text-cyan-200"
+                  : "bg-white/5 text-gray-400"
+              }`}
+            >
+              {voiceEnabled ? "On" : "Off"}
+            </button>
+          </div>
+
+          <div className="border-b border-white/10 py-4">
+            <p className="font-semibold mb-3">Personality</p>
+
+            <div className="grid grid-cols-2 gap-3">
+              {["Companion", "Coach", "Chill", "Analyst"].map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setPersonality(mode)}
+                  className={`rounded-2xl p-3 transition ${
+                    personality === mode
+                      ? "bg-cyan-500/20 border border-cyan-300/30 text-cyan-200"
+                      : "bg-white/5 text-gray-300"
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="py-4">
+            <p className="font-semibold mb-3">Theme</p>
+
+            <div className="grid grid-cols-2 gap-3">
+              {["Neon Dark", "Ocean", "Midnight", "Purple"].map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setTheme(mode)}
+                  className={`rounded-2xl p-3 transition ${
+                    theme === mode
+                      ? "bg-cyan-500/20 border border-cyan-300/30 text-cyan-200"
+                      : "bg-white/5 text-gray-300"
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-gray-400 text-sm mt-4">
+              Current theme: {theme}
             </p>
           </div>
+          
+          <div className="space-y-4 pt-6">
+  <h4 className="text-xl font-semibold">Profile</h4>
 
-          <button
-            onClick={() => {
-              stopVoice()
-              setVoiceEnabled(!voiceEnabled)
-            }}
-            className={`rounded-2xl px-5 py-3 ${
-              voiceEnabled
-                ? "bg-cyan-500/20 text-cyan-200"
-                : "bg-white/5 text-gray-400"
-            }`}
-          >
-            {voiceEnabled ? "On" : "Off"}
-          </button>
-        </div>
+  <input
+    type="text"
+    placeholder="First Name"
+    value={firstName}
+    onChange={(e) => setFirstName(e.target.value)}
+    className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
+  />
 
-        <div className="flex justify-between items-center border-b border-white/10 py-4">
-          <div>
-            <p className="font-semibold">Theme</p>
-            <p className="text-gray-400 text-sm">Dark neon mode active.</p>
-          </div>
+  <input
+    type="text"
+    placeholder="Last Name"
+    value={lastName}
+    onChange={(e) => setLastName(e.target.value)}
+    className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
+  />
 
-          <span className="text-cyan-300">Dark</span>
-        </div>
+  <input
+    type="text"
+    placeholder="Phone Number"
+    value={phone}
+    onChange={(e) => setPhone(e.target.value)}
+    className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
+  />
 
-        <div className="flex justify-between items-center py-4">
-          <div>
-            <p className="font-semibold">Personality</p>
-            <p className="text-gray-400 text-sm">
-              Short, calm, helpful, slightly funny.
-            </p>
-          </div>
+  <input
+    type="text"
+    placeholder="Main Financial Goal"
+    value={mainGoal}
+    onChange={(e) => setMainGoal(e.target.value)}
+    className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
+  />
 
-          <span className="text-cyan-300">Companion</span>
+  <input
+    type="text"
+    placeholder="Income Range"
+    value={incomeRange}
+    onChange={(e) => setIncomeRange(e.target.value)}
+    className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
+  />
+
+  <button
+  type="button"
+  onClick={() => {
+    console.log("Save Profile clicked")
+    saveProfile()
+  }}
+  className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl px-5 py-3 font-semibold hover:scale-[1.02] transition"
+>
+  Save Profile
+</button>
+
+  {profileSaved && (
+    <p className="text-green-400 text-sm">
+      Profile saved.
+    </p>
+  )}
+</div>
         </div>
       </div>
     </div>

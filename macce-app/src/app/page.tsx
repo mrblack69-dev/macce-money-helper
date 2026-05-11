@@ -320,8 +320,52 @@ const [profileSaved, setProfileSaved] = useState(false)
             />
 
             <button
-              onClick={() => setLoggedIn(true)}
-              className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl py-4 font-semibold hover:scale-[1.02] transition"
+              onClick={async () => {
+  if (!email.trim() || !password.trim()) {
+    alert("Enter email and password")
+    return
+  }
+
+  if (signupMode) {
+    const { data, error } =
+      await supabase.auth.signUp({
+        email,
+        password,
+      })
+
+    console.log(data)
+    console.log(error)
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    alert("Account created. Now login.")
+    setSignupMode(false)
+  } else {
+    const { data, error } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+    console.log(data)
+    console.log(error)
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    if (!data.session) {
+      alert("No session created")
+      return
+    }
+
+    setLoggedIn(true)
+  }
+}}
             >
               {signupMode ? "Create Account" : "Login"}
             </button>

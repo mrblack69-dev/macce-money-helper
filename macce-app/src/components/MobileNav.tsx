@@ -27,12 +27,12 @@ export default function MobileNav({
     },
     {
       id: "chat",
-      label: "AI",
+      label: "askMACCE",
       icon: MessageCircle,
     },
     {
       id: "Transactions",
-      label: "Money",
+      label: "YOUR $",
       icon: CreditCard,
     },
     {

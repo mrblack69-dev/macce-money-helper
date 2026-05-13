@@ -1,3 +1,4 @@
+import { ratelimit } from "@/lib/ratelimit"
 import OpenAI from "openai"
 
 const client = new OpenAI({
@@ -7,6 +8,25 @@ const client = new OpenAI({
 let conversationHistory: any[] = []
 
 export async function POST(req: Request) {
+  const ip =
+  req.headers.get("x-forwarded-for") ??
+  "unknown"
+
+const { success } = await ratelimit.limit(
+  `chat:${ip}`
+)
+
+if (!success) {
+  return Response.json(
+    {
+      message:
+        "Slow down a little. MACCE is getting too many requests.",
+    },
+    {
+      status: 429,
+    }
+  )
+}
   try {
     const body = await req.json()
     const profile = body.profile || {}

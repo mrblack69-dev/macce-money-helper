@@ -10,6 +10,36 @@ type ChatMessage = {
   content: string
 }
 
+type SubscriptionItem = {
+  id?: string
+  merchant_name: string
+  average_amount: number
+  transaction_count: number
+  category: string | null
+  last_seen: string
+  predicted_next_date: string
+  confidence: number
+}
+
+type TransactionItem = {
+  id: string
+  name: string
+  merchant_name: string | null
+  amount: number
+  date: string
+  category: string | null
+}
+
+type BillItem = {
+  id?: string
+  merchant_name: string
+  category: string | null
+  average_amount: number
+  last_seen: string
+  predicted_next_date: string
+  confidence: number
+}
+
 const tabs = [
   "Dashboard",
   "Transactions",
@@ -21,6 +51,19 @@ const tabs = [
 ]
 
 export default function Home() {
+  const [subscriptions, setSubscriptions] =
+  useState<SubscriptionItem[]>([])
+  const [analytics, setAnalytics] =
+  useState<any>(null)
+  const [insights, setInsights] =
+  useState<string[]>([])
+  const [bills, setBills] =
+  useState<BillItem[]>([])
+  const [safeToSpend, setSafeToSpend] =
+  useState<any>(null)
+  const [alerts, setAlerts] =
+  useState<any[]>([])
+  const [transactions, setTransactions] = useState<TransactionItem[]>([])
   const [linkToken, setLinkToken] = useState("")
   const [loggedIn, setLoggedIn] = useState(false)
   const [signupMode, setSignupMode] = useState(false)
@@ -86,6 +129,13 @@ const [profileSaved, setProfileSaved] = useState(false)
 
   if (loggedIn) {
     loadProfile()
+    loadTransactions()
+    loadAnalytics()
+    loadInsights()
+    loadBills()
+    loadSafeToSpend()
+    loadSubscriptions()
+    loadAlerts()
   }
 }, [loggedIn])
 useEffect(() => {
@@ -151,10 +201,275 @@ await fetch("/api/plaid/sync-transactions", {
   }),
 })
 
+await fetch("/api/bills", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    user_id: user.id,
+  }),
+})
+await fetch("/api/subscriptions", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    user_id: user.id,
+  }),
+})
+await loadTransactions()
+await loadAnalytics()
+await loadInsights()
+await loadBills()
+await loadSafeToSpend()
+await loadSubscriptions()
+await loadAlerts()
+await fetch("/api/profile", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    user_id: user.id,
+  }),
+})
+await fetch("/api/alerts", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    user_id: user.id,
+  }),
+})
     alert("Bank connected!")
   },
 })
 
+
+async function loadTransactions() {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    const res = await fetch("/api/transactions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: user.id,
+      }),
+    })
+
+    const data = await res.json()
+
+    console.log("transactions loaded:", data)
+
+    setTransactions(data.transactions || [])
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+async function loadAnalytics() {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    const res = await fetch(
+      "/api/analytics",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+        }),
+      }
+    )
+
+    const data = await res.json()
+
+    console.log(
+      "analytics loaded:",
+      data
+    )
+
+    setAnalytics(data)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+async function loadInsights() {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    const res = await fetch(
+      "/api/insights",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+        }),
+      }
+    )
+
+    const data = await res.json()
+
+    console.log(
+      "insights loaded:",
+      data
+    )
+
+    setInsights(
+      data.insights || []
+    )
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+async function loadBills() {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    const res = await fetch(
+      "/api/bills",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+        }),
+      }
+    )
+
+    const data = await res.json()
+
+    setBills(data.bills || [])
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+async function loadSubscriptions() {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    const res = await fetch(
+      "/api/subscriptions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+        }),
+      }
+    )
+
+    const data = await res.json()
+
+    setSubscriptions(
+      data.subscriptions || []
+    )
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+async function loadSafeToSpend() {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    const res = await fetch(
+      "/api/safe-to-spend",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+        }),
+      }
+    )
+
+    const data = await res.json()
+
+    setSafeToSpend(data)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+async function loadAlerts() {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    const res = await fetch(
+      "/api/alerts",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+        }),
+      }
+    )
+
+    const data = await res.json()
+
+    setAlerts(data.alerts || [])
+  } catch (error) {
+    console.error(error)
+  }
+}
 
   function stopVoice() {
     audioQueue.current = []
@@ -292,77 +607,62 @@ await fetch("/api/plaid/sync-transactions", {
     setLoading(true)
 
     try {
-      const res = await fetch("/api/chat", {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("No user found")
+  }
+
+  const financialResponse =
+    await fetch(
+      "/api/financial-chat",
+      {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type":
+            "application/json",
         },
         body: JSON.stringify({
-  message: currentMessage,
-  personality,
-  profile: {
-    firstName,
-    lastName,
-    mainGoal,
-    incomeRange,
+          user_id: user.id,
+          message: currentMessage,
+          personality,
+          profile: {
+            firstName,
+            lastName,
+            mainGoal,
+            incomeRange,
+          },
+        }),
+      }
+    )
+
+  if (!financialResponse.ok) {
+    throw new Error(
+      "Chat request failed"
+    )
+  }
+
+  const data =
+    await financialResponse.json()
+
+  const aiReply =
+  data.reply ||
+  "No response generated"
+
+console.log(aiReply)
+
+setChat((prev) => [
+  ...prev,
+  {
+    role: "assistant",
+    content: aiReply,
   },
-}),
-      })
+])
 
-      if (!res.ok || !res.body) {
-        throw new Error("Chat request failed")
-      }
-
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-
-      let fullText = ""
-      let spokenText = ""
-
-      while (true) {
-        const { done, value } = await reader.read()
-
-        if (done) break
-
-        const chunk = decoder.decode(value)
-
-        try {
-          const parsed = JSON.parse(chunk)
-          fullText = parsed.message || chunk
-        } catch {
-          fullText += chunk
-        }
-
-        setChat((prev) => {
-          const updated = [...prev]
-
-          updated[updated.length - 1] = {
-            role: "assistant",
-            content: fullText,
-          }
-
-          return updated
-        })
-
-        const sentences = fullText.match(/[^.!?]+[.!?]+/g)
-
-        if (sentences) {
-          const completeSpeech = sentences.join(" ")
-
-          if (completeSpeech.length > spokenText.length) {
-            const newSpeech = completeSpeech.slice(spokenText.length).trim()
-            spokenText = completeSpeech
-            generateVoice(newSpeech)
-          }
-        }
-      }
-
-      const leftover = fullText.slice(spokenText.length).trim()
-
-      if (leftover) {
-        generateVoice(leftover)
-      }
-    } catch {
+generateVoice(aiReply)
+} catch {
       setChat((prev) => {
         const updated = [...prev]
 
@@ -572,11 +872,23 @@ await fetch("/api/plaid/sync-transactions", {
         <div className="relative z-10 grid grid-cols-1 xl:grid-cols-12 gap-6">
           <div className="xl:col-span-8 space-y-6">
             {activeTab === "Dashboard" && (
-  <DashboardContent 
-  openPlaid={open} plaidReady={ready} 
+  <DashboardContent
+  openPlaid={open}
+  plaidReady={ready}
+  analytics={analytics}
+  transactions={transactions}
+  insights={insights}
+  bills={bills}
+  safeToSpend={safeToSpend}
+  subscriptions={subscriptions}
+  alerts={alerts}
+/>
+)}
+            {activeTab === "Transactions" && (
+  <TransactionsContent
+    transactions={transactions}
   />
 )}
-            {activeTab === "Transactions" && <TransactionsContent />}
             {activeTab === "Budget" && <BudgetContent />}
             {activeTab === "Goals" && <GoalsContent />}
             {activeTab === "AI Insights" && <InsightsContent />}
@@ -732,18 +1044,251 @@ function getThemeBackground(theme: string) {
 function DashboardContent({
   openPlaid,
   plaidReady,
+  analytics,
+  transactions,
+  insights,
+  bills,
+  safeToSpend,
+  subscriptions,
+  alerts,
 }: {
   openPlaid: any
   plaidReady: boolean
+  analytics: any
+  transactions: TransactionItem[]
+  insights: string[]
+  bills: BillItem[]
+  safeToSpend: any
+  subscriptions: SubscriptionItem[]
+  alerts: any[]
 }) {
+  const safeAmount =
+  Number(safeToSpend?.safeToSpend || 0)
+  const income = analytics?.income || 0
+  const expenses = analytics?.expenses || 0
+  const net = analytics?.net || 0
+  const savingsRate =
+    income > 0
+      ? Math.round((net / income) * 100)
+      : 0
+
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-        <Card title="Net Worth" value="$28,420.75" note="↗ 4.3% this month" good />
-        <Card title="Income" value="$5,870.00" note="↗ 8.7% this month" good />
-        <Card title="Expenses" value="$2,845.50" note="↘ 3.2% this month" bad />
-        <Card title="Savings Rate" value="32%" note="↗ 6% this month" good />
+        <Card title="Net Cash Flow" value={`$${net.toFixed(2)}`} note="Live from linked transactions" good={net >= 0} bad={net < 0} />
+        <Card title="Income" value={`$${income.toFixed(2)}`} note="Synced from Plaid" good />
+        <Card title="Expenses" value={`$${expenses.toFixed(2)}`} note="Synced from Plaid" bad />
+        <Card title="Savings Rate" value={`${savingsRate}%`} note="Income minus expenses" good={savingsRate >= 20} bad={savingsRate < 0} />
       </div>
+
+      <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-300/20 rounded-3xl p-6 mt-6">
+  <h3 className="text-2xl font-semibold mb-3">
+    Safe to Spend
+  </h3>
+
+  <p className="text-5xl font-bold text-cyan-300 mb-3">
+    $
+    {safeAmount.toFixed(2)}
+  </p>
+
+  <p className="text-white/60">
+    After income, spending, and predicted upcoming bills.
+  </p>
+</div>
+
+
+<div className="space-y-3 mt-6">
+  {alerts.length > 0 &&
+    alerts.slice(0, 3).map(
+      (alert, index) => (
+        <div
+          key={index}
+          className="bg-yellow-400 text-black rounded-2xl p-4 shadow-lg"
+        >
+          <p className="font-semibold text-black">
+            {alert.title}
+          </p>
+
+          <p className="text-sm text-black/80 mt-1">
+            {alert.message}
+          </p>
+        </div>
+      )
+    )}
+</div>
+
+<div className="bg-white/5 border border-pink-400/20 rounded-3xl p-6 mt-6">
+  <h3 className="text-2xl font-semibold mb-5">
+    Subscriptions
+  </h3>
+
+  <div className="space-y-3">
+    {subscriptions.length > 0 ? (
+      subscriptions
+        .sort(
+          (a, b) =>
+            b.average_amount -
+            a.average_amount
+        )
+        .slice(0, 5)
+        .map(
+          (
+            subscription,
+            index
+          ) => (
+            <div
+              key={index}
+              className="bg-pink-400/10 border border-pink-400/20 rounded-2xl p-4 flex justify-between items-center"
+            >
+              <div>
+                <p className="font-medium">
+                  {
+                    subscription.merchant_name
+                  }
+                </p>
+
+                <p className="text-sm text-white/60">
+                  ~ every 30 days
+                </p>
+              </div>
+
+              <p className="text-pink-300 font-semibold">
+                $
+                {Number(
+                  subscription.average_amount
+                ).toFixed(2)}
+              </p>
+            </div>
+          )
+        )
+    ) : (
+      <div className="bg-white/5 rounded-2xl p-4 text-white/60">
+        No subscriptions detected yet
+      </div>
+    )}
+  </div>
+</div>
+
+      <div className="bg-white/5 border border-white/10 rounded-3xl p-6 mt-6">
+  <h3 className="text-2xl font-semibold mb-4">
+    Spending Categories
+  </h3>
+
+  <div className="space-y-3">
+    {analytics?.categories &&
+      Object.entries(
+        analytics.categories
+      )
+        .sort(
+          (a: any, b: any) =>
+            b[1] - a[1]
+        )
+        .slice(0, 5)
+        .map((entry: any) => (
+          <div
+            key={entry[0]
+  .replace(/_/g, " ")
+  .toLowerCase()
+  .replace(/\b\w/g, (c: string) =>
+    c.toUpperCase()
+  )}
+            className="flex justify-between items-center bg-white/5 rounded-2xl p-4"
+          >
+            <p className="font-medium">
+              {entry[0]
+  .replace(/_/g, " ")
+  .toLowerCase()
+  .replace(/\b\w/g, (c: string) =>
+    c.toUpperCase()
+  )}
+            </p>
+
+            <p className="text-red-400 font-semibold">
+              ${entry[1].toFixed(2)}
+            </p>
+          </div>
+        ))}
+  </div>
+</div>
+
+<div className="bg-white/5 border border-cyan-400/20 rounded-3xl p-6 mt-6">
+  <h3 className="text-2xl font-semibold mb-5">
+    MACCE Insights
+  </h3>
+
+  <div className="space-y-3">
+    {insights.length > 0 ? (
+      insights.map(
+        (insight, index) => (
+          <div
+            key={index}
+            className="bg-cyan-400/10 border border-cyan-400/20 rounded-2xl p-4"
+          >
+            <p className="text-cyan-100">
+              {insight}
+            </p>
+          </div>
+        )
+      )
+    ) : (
+      <div className="bg-white/5 rounded-2xl p-4 text-white/60">
+        No insights yet
+      </div>
+    )}
+  </div>
+</div>
+
+<div className="bg-white/5 border border-orange-400/20 rounded-3xl p-6 mt-6">
+  <h3 className="text-2xl font-semibold mb-5">
+    Upcoming Bills
+  </h3>
+
+  <div className="space-y-3">
+    {bills.length > 0 ? (
+      bills
+        .sort(
+          (a, b) =>
+            new Date(
+              a.predicted_next_date
+            ).getTime() -
+            new Date(
+              b.predicted_next_date
+            ).getTime()
+        )
+        .slice(0, 5)
+        .map((bill, index) => (
+          <div
+            key={index}
+            className="bg-orange-400/10 border border-orange-400/20 rounded-2xl p-4 flex justify-between items-center"
+          >
+            <div>
+              <p className="font-medium">
+                {bill.merchant_name}
+              </p>
+
+              <p className="text-sm text-white/60">
+                Due around{" "}
+                {
+                  bill.predicted_next_date
+                }
+              </p>
+            </div>
+
+            <p className="text-orange-300 font-semibold">
+              $
+              {Number(
+                bill.average_amount
+              ).toFixed(2)}
+            </p>
+          </div>
+        ))
+    ) : (
+      <div className="bg-white/5 rounded-2xl p-4 text-white/60">
+        No recurring bills detected yet
+      </div>
+    )}
+  </div>
+</div>
 
       <button
   onClick={() => openPlaid()}
@@ -754,13 +1299,13 @@ function DashboardContent({
 </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <CashFlowCard />
-        <SpendingBreakdownCard />
+        <CashFlowCard analytics={analytics} />
+        <SpendingBreakdownCard analytics={analytics} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <GoalsMiniCard />
-        <TransactionsMiniCard />
+        <TransactionsMiniCard transactions={transactions} />
       </div>
 
       <div className="bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-cyan-300/20 rounded-3xl p-5 text-cyan-200">
@@ -770,17 +1315,60 @@ function DashboardContent({
   )
 }
 
-function TransactionsContent() {
+function TransactionsContent({
+  transactions,
+}: {
+  transactions: TransactionItem[]
+}) {
   return (
     <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
-      <h3 className="text-2xl font-semibold mb-6">Transactions</h3>
+      <h3 className="text-2xl font-semibold mb-6">
+        Transactions
+      </h3>
 
-      <Transaction name="Starbucks" amount="-$4.75" bad />
-      <Transaction name="Salary Deposit" amount="+$2,935.00" good />
-      <Transaction name="Amazon" amount="-$89.99" bad />
-      <Transaction name="Uber" amount="-$23.45" bad />
-      <Transaction name="Home Depot" amount="-$90.00" bad />
-      <Transaction name="Target Diapers" amount="-$70.00" bad />
+      <div className="space-y-3">
+        {transactions.length === 0 ? (
+          <p className="text-gray-400">
+            No transactions yet.
+          </p>
+        ) : (
+          transactions.map((tx) => (
+            <div
+              key={tx.id}
+              className="bg-white/5 rounded-2xl p-4 flex justify-between items-center"
+            >
+              <div>
+                <p className="font-semibold">
+                  {tx.merchant_name ||
+                    tx.name}
+                </p>
+
+                <p className="text-sm text-gray-400">
+                  {tx.amount < 0
+  ? "Income"
+  : tx.category
+      ?.replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (c: string) =>
+        c.toUpperCase()
+      )}
+                </p>
+              </div>
+
+              <p
+                className={`font-semibold ${
+                  tx.amount > 0
+                    ? "text-red-400"
+                    : "text-green-400"
+                }`}
+              >
+                {tx.amount > 0 ? "-" : "+"}$
+{Math.abs(tx.amount).toFixed(2)}
+              </p>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   )
 }
@@ -1021,39 +1609,140 @@ function SettingsContent({
   )
 }
 
-function CashFlowCard() {
+function CashFlowCard({
+  analytics,
+}: {
+  analytics: any
+}) {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl">
-      <h3 className="text-xl font-semibold mb-6">Cash Flow Overview</h3>
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
+      <h3 className="text-2xl font-semibold mb-5">
+        Cash Flow Overview
+      </h3>
 
-      <div className="h-64 flex items-end gap-3">
-        {[35, 42, 40, 52, 50, 63, 70, 76, 82, 90, 95, 100].map(
-          (height, i) => (
-            <div key={i} className="flex-1 flex flex-col justify-end">
-              <div
-                className="rounded-t-xl bg-gradient-to-t from-cyan-500 to-green-400 shadow-[0_0_18px_rgba(34,211,238,0.35)]"
-                style={{ height: `${height}%` }}
-              ></div>
-            </div>
-          )
-        )}
+      <div className="space-y-4">
+        <div>
+          <div className="flex justify-between mb-1">
+            <span>Income</span>
+
+            <span>
+              $
+              {analytics?.income?.toFixed(
+                2
+              ) || "0.00"}
+            </span>
+          </div>
+
+          <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-green-400 rounded-full"
+              style={{
+                width: "100%",
+              }}
+            />
+          </div>
+        </div>
+
+        <div>
+          <div className="flex justify-between mb-1">
+            <span>Expenses</span>
+
+            <span>
+              $
+              {analytics?.expenses?.toFixed(
+                2
+              ) || "0.00"}
+            </span>
+          </div>
+
+          <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-red-400 rounded-full"
+              style={{
+                width: `${
+                  analytics?.income
+                    ? Math.min(
+                        (analytics.expenses /
+                          analytics.income) *
+                          100,
+                        100
+                      )
+                    : 0
+                }%`,
+              }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   )
 }
 
-function SpendingBreakdownCard() {
-  return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl">
-      <h3 className="text-xl font-semibold mb-6">Spending Breakdown</h3>
+function SpendingBreakdownCard({
+  analytics,
+}: {
+  analytics: any
+}) {
+  const categories = analytics?.categories
+    ? Object.entries(
+        analytics.categories
+      )
+        .sort(
+          (a: any, b: any) =>
+            b[1] - a[1]
+        )
+        .slice(0, 5)
+    : []
 
-      <div className="flex items-center justify-center h-64">
-        <div className="w-44 h-44 rounded-full border-[28px] border-cyan-400 border-t-purple-500 border-r-blue-500 border-b-green-400 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-2xl font-bold">$2,845</p>
-            <p className="text-gray-400 text-sm">Total</p>
-          </div>
-        </div>
+  const total =
+    categories.reduce(
+      (sum: number, entry: any) =>
+        sum + entry[1],
+      0
+    ) || 1
+
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
+      <h3 className="text-2xl font-semibold mb-5">
+        Spending Breakdown
+      </h3>
+
+      <div className="space-y-4">
+        {categories.map(
+          (entry: any, index) => {
+            const percent =
+              (entry[1] / total) * 100
+
+            return (
+              <div key={index}>
+                <div className="flex justify-between mb-1">
+                  <span>{entry[0]
+  .replace(/_/g, " ")
+  .toLowerCase()
+  .replace(/\b\w/g, (c: string) =>
+    c.toUpperCase()
+  )}</span>
+
+                  <span>
+                    $
+                    {entry[1].toFixed(
+                      2
+                    )}
+                  </span>
+                </div>
+
+                <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-cyan-400 rounded-full"
+                    style={{
+                      width: `${percent}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )
+          }
+        )}
       </div>
     </div>
   )
@@ -1062,23 +1751,90 @@ function SpendingBreakdownCard() {
 function GoalsMiniCard() {
   return (
     <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
-      <h3 className="text-xl font-semibold mb-5">Financial Goals</h3>
+      <h3 className="text-2xl font-semibold mb-5">
+        Financial Goals
+      </h3>
 
-      <Goal title="Emergency Fund" amount="$3,250 / $10,000" progress="32%" width="32%" />
-      <Goal title="Vacation Fund" amount="$1,850 / $5,000" progress="37%" width="37%" />
+      <div className="bg-white/5 rounded-2xl p-5 text-white/70">
+        <p className="text-lg font-medium mb-2">
+          No goals set yet
+        </p>
+
+        <p className="text-sm">
+          Soon you’ll be able to create:
+        </p>
+
+        <ul className="mt-3 space-y-2 text-sm">
+          <li>
+            • Savings goals
+          </li>
+
+          <li>
+            • Debt payoff plans
+          </li>
+
+          <li>
+            • Emergency fund targets
+          </li>
+
+          <li>
+            • AI-powered budgeting plans
+          </li>
+        </ul>
+      </div>
     </div>
   )
 }
 
-function TransactionsMiniCard() {
+function TransactionsMiniCard({
+  transactions,
+}: {
+  transactions: TransactionItem[]
+}) {
   return (
     <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
-      <h3 className="text-xl font-semibold mb-5">Recent Transactions</h3>
+      <h3 className="text-2xl font-semibold mb-5">
+        Recent Transactions
+      </h3>
 
-      <Transaction name="Starbucks" amount="-$4.75" bad />
-      <Transaction name="Salary Deposit" amount="+$2,935.00" good />
-      <Transaction name="Amazon" amount="-$89.99" bad />
-      <Transaction name="Uber" amount="-$23.45" bad />
+      <div className="space-y-3">
+        {transactions
+          .slice(0, 5)
+          .map((tx, index) => (
+            <div
+              key={index}
+              className="flex justify-between items-center bg-white/5 rounded-2xl p-4"
+            >
+              <div>
+                <p className="font-medium">
+                  {tx.name}
+                </p>
+
+                <p className="text-sm text-white/50">
+                  {tx.amount < 0
+  ? "Income"
+  : tx.category
+      ?.replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (c: string) =>
+        c.toUpperCase()
+      )}
+                </p>
+              </div>
+
+              <p
+                className={`font-semibold ${
+                  tx.amount > 0
+                    ? "text-red-400"
+                    : "text-green-400"
+                }`}
+              >
+                {tx.amount > 0 ? "-" : "+"}$
+{Math.abs(tx.amount).toFixed(2)}
+              </p>
+            </div>
+          ))}
+      </div>
     </div>
   )
 }

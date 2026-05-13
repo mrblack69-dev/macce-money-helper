@@ -26,7 +26,7 @@ export default function MobileNav({
       icon: Home,
     },
     {
-      id: "chat",
+      id: "askMACCE",
       label: "askMACCE",
       icon: MessageCircle,
     },

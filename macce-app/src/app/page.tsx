@@ -883,9 +883,56 @@ generateVoice(aiReply)
 )}
 
 {activeTab === "Transactions" && (
-  <TransactionsContent
-    transactions={transactions}
-  />
+  <>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+      <Card
+  title="Net Cash Flow"
+  value={`$${Number(
+    analytics?.net || 0
+  ).toFixed(2)}`}
+  note="Live from linked transactions"
+  good={(analytics?.net || 0) >= 0}
+  bad={(analytics?.net || 0) < 0}
+/>
+
+      <Card
+        title="Income"
+  value={`$${Number(
+    analytics?.income || 0
+  ).toFixed(2)}`}
+  note="Synced from Plaid"
+  good
+      />
+
+      <Card
+        title="Expenses"
+  value={`$${Number(
+    analytics?.expenses || 0
+  ).toFixed(2)}`}
+  note="Synced from Plaid"
+  bad
+      />
+
+      <Card
+  title="Savings Rate"
+  value={`${Number(
+    analytics?.savingsRate || 0
+  ).toFixed(0)}%`}
+  note="Income minus expenses"
+  good={
+    (analytics?.savingsRate || 0) >= 20
+  }
+  bad={
+    (analytics?.savingsRate || 0) < 0
+  }
+/>
+    
+    </div>
+
+    <TransactionsContent
+      transactions={transactions}
+    />
+  </>
 )}
 
 {activeTab === "Budget" && (
@@ -918,7 +965,7 @@ generateVoice(aiReply)
   />
 )}
 
-{activeTab === "chat" && (
+{activeTab === "askMACCE" && (
   <AskMacceContent
     chat={chat}
     loading={loading}
@@ -1087,12 +1134,7 @@ function DashboardContent({
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-        <Card title="Net Cash Flow" value={`$${net.toFixed(2)}`} note="Live from linked transactions" good={net >= 0} bad={net < 0} />
-        <Card title="Income" value={`$${income.toFixed(2)}`} note="Synced from Plaid" good />
-        <Card title="Expenses" value={`$${expenses.toFixed(2)}`} note="Synced from Plaid" bad />
-        <Card title="Savings Rate" value={`${savingsRate}%`} note="Income minus expenses" good={savingsRate >= 20} bad={savingsRate < 0} />
-      </div>
+      
 
       <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-300/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
   <h3 className="text-2xl font-semibold mb-3">

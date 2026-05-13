@@ -1,5 +1,6 @@
 "use client"
 
+import MobileNav from "@/components/MobileNav"
 import { usePlaidLink } from "react-plaid-link"
 import { supabase } from "@/lib/supabase"
 import { motion } from "framer-motion"
@@ -99,7 +100,9 @@ const [profileSaved, setProfileSaved] = useState(false)
   const isPlaying = useRef(false)
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    chatEndRef.current?.scrollIntoView({
+  behavior: "smooth",
+})
   }, [chat, loading])
   useEffect(() => {
   async function loadProfile() {
@@ -683,7 +686,7 @@ generateVoice(aiReply)
       <main className={`min-h-screen ${getThemeBackground(theme)} text-white flex items-center justify-center p-6 overflow-hidden`}>
         <div className="absolute w-[700px] h-[700px] bg-cyan-400/10 blur-[130px] rounded-full"></div>
 
-        <div className="relative w-full max-w-md bg-white/5 border border-cyan-400/20 rounded-3xl p-8 backdrop-blur-xl shadow-[0_0_50px_rgba(34,211,238,0.08)]">
+        <div className="relative w-full max-w-md bg-white/5 border border-cyan-400/20 rounded-3xl p-8 backdrop-blur-xl shadow-[0_0_50px_rgba(34,211,238,0.08)] transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
           <div className="flex flex-col items-center mb-8">
             <motion.img
               src="/macce.png"
@@ -777,7 +780,7 @@ generateVoice(aiReply)
 
             <button
               onClick={() => setSignupMode(!signupMode)}
-              className="text-sm text-gray-400 w-full text-center hover:text-cyan-300 transition"
+              className="min-h-[44px] text-sm text-gray-400 w-full text-center hover:text-cyan-300 transition"
             >
               {signupMode
                 ? "Already have an account? Login"
@@ -791,7 +794,7 @@ generateVoice(aiReply)
 
   return (
     <main className={`min-h-screen ${getThemeBackground(theme)} text-white flex flex-col lg:flex-row overflow-hidden`}>
-      <aside className="w-full lg:w-72 bg-[#07111f]/90 border-r border-cyan-400/10 p-6 flex flex-col justify-between">
+      <aside className="hidden lg:flex lg:w-72 bg-[#07111f]/90 border-r border-cyan-400/10 p-6 flex flex-col justify-between">
         <div>
           <h1 className="text-4xl font-bold text-cyan-300 mb-2">MACCE</h1>
 
@@ -804,7 +807,7 @@ generateVoice(aiReply)
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`w-full text-left rounded-2xl p-4 transition ${
+                className={`w-full min-h-[44px] text-left rounded-2xl p-4 transition ${
                   activeTab === tab
                     ? "bg-cyan-400/15 border border-cyan-300/30 text-cyan-200"
                     : "bg-white/5 hover:bg-white/10 text-gray-300"
@@ -817,7 +820,7 @@ generateVoice(aiReply)
         </div>
 
         <div className="space-y-3 mt-6">
-          <div className="bg-white/5 border border-cyan-300/20 rounded-3xl p-5">
+          <div className="bg-white/5 border border-cyan-300/20 rounded-3xl p-5 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
             <p className="text-cyan-300 font-semibold">MACCE is online</p>
             <p className="text-gray-400 text-sm mt-2">
               Always here. Always learning.
@@ -829,14 +832,14 @@ generateVoice(aiReply)
               stopVoice()
               setLoggedIn(false)
             }}
-            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition text-left"
+            className="w-full min-h-[44px] bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition text-left"
           >
             Logout
           </button>
         </div>
       </aside>
 
-      <section className="flex-1 p-4 lg:p-8 relative overflow-y-auto">
+      <section className="flex-1 p-4 lg:p-8 pb-24 relative overflow-y-auto">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-400/10 blur-[120px] rounded-full"></div>
         <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] bg-purple-500/10 blur-[120px] rounded-full"></div>
 
@@ -856,13 +859,13 @@ generateVoice(aiReply)
           </div>
 
           <div className="flex gap-4 text-gray-300">
-            <button className="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+            <button className="min-h-[44px] w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
               🔔
             </button>
 
             <button
               onClick={() => setActiveTab("Settings")}
-              className="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center"
+              className="min-h-[44px] w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center"
             >
               ⚙️
             </button>
@@ -873,49 +876,101 @@ generateVoice(aiReply)
           <div className="xl:col-span-8 space-y-6">
             {activeTab === "Dashboard" && (
   <DashboardContent
-  openPlaid={open}
-  plaidReady={ready}
-  analytics={analytics}
-  transactions={transactions}
-  insights={insights}
-  bills={bills}
-  safeToSpend={safeToSpend}
-  subscriptions={subscriptions}
-  alerts={alerts}
-/>
+    openPlaid={open}
+    plaidReady={ready}
+    analytics={analytics}
+    transactions={transactions}
+    insights={insights}
+    bills={bills}
+    safeToSpend={safeToSpend}
+    subscriptions={subscriptions}
+    alerts={alerts}
+  />
 )}
-            {activeTab === "Transactions" && (
+
+{activeTab === "Transactions" && (
   <TransactionsContent
     transactions={transactions}
   />
 )}
-            {activeTab === "Budget" && <BudgetContent />}
-            {activeTab === "Goals" && <GoalsContent />}
-            {activeTab === "AI Insights" && <InsightsContent />}
-            {activeTab === "Reports" && <ReportsContent />}
-            {activeTab === "Settings" && (
-              <SettingsContent
-                firstName={firstName}
-                setFirstName={setFirstName}
-                lastName={lastName}
-                setLastName={setLastName}
-                phone={phone}
-                setPhone={setPhone}
-                mainGoal={mainGoal}
-                setMainGoal={setMainGoal}
-                incomeRange={incomeRange}
-                setIncomeRange={setIncomeRange}
-                saveProfile={saveProfile}
-                profileSaved={profileSaved}
-                voiceEnabled={voiceEnabled}
-                setVoiceEnabled={setVoiceEnabled}
-                stopVoice={stopVoice}
-                theme={theme}
-                setTheme={setTheme}
-                personality={personality}
-                setPersonality={setPersonality}
-              />
-            )}
+
+{activeTab === "Budget" && (
+  <BudgetContent />
+)}
+
+{activeTab === "Goals" && (
+  <GoalsContent />
+)}
+
+{activeTab === "AI Insights" && (
+  <InsightsContent />
+)}
+
+{activeTab === "Reports" && (
+  <ReportsContent />
+)}
+
+{activeTab === "Alerts" && (
+  <DashboardContent
+    openPlaid={open}
+    plaidReady={ready}
+    analytics={analytics}
+    transactions={transactions}
+    insights={insights}
+    bills={bills}
+    safeToSpend={safeToSpend}
+    subscriptions={subscriptions}
+    alerts={alerts}
+  />
+)}
+
+{activeTab === "Profile" && (
+  <SettingsContent
+    firstName={firstName}
+    setFirstName={setFirstName}
+    lastName={lastName}
+    setLastName={setLastName}
+    phone={phone}
+    setPhone={setPhone}
+    mainGoal={mainGoal}
+    setMainGoal={setMainGoal}
+    incomeRange={incomeRange}
+    setIncomeRange={setIncomeRange}
+    saveProfile={saveProfile}
+    profileSaved={profileSaved}
+    voiceEnabled={voiceEnabled}
+    setVoiceEnabled={setVoiceEnabled}
+    stopVoice={stopVoice}
+    theme={theme}
+    setTheme={setTheme}
+    personality={personality}
+    setPersonality={setPersonality}
+  />
+)}
+
+{activeTab === "Settings" && (
+  <SettingsContent
+    firstName={firstName}
+    setFirstName={setFirstName}
+    lastName={lastName}
+    setLastName={setLastName}
+    phone={phone}
+    setPhone={setPhone}
+    mainGoal={mainGoal}
+    setMainGoal={setMainGoal}
+    incomeRange={incomeRange}
+    setIncomeRange={setIncomeRange}
+    saveProfile={saveProfile}
+    profileSaved={profileSaved}
+    voiceEnabled={voiceEnabled}
+    setVoiceEnabled={setVoiceEnabled}
+    stopVoice={stopVoice}
+    theme={theme}
+    setTheme={setTheme}
+    personality={personality}
+    setPersonality={setPersonality}
+  />
+)}
           </div>
 
           <div className="xl:col-span-4 space-y-6">
@@ -962,7 +1017,7 @@ generateVoice(aiReply)
               />
             </div>
 
-            <div className="bg-white/5 border border-cyan-300/20 rounded-3xl p-6 backdrop-blur-xl shadow-[0_0_30px_rgba(34,211,238,0.08)]">
+            <div className="bg-white/5 border border-cyan-300/20 rounded-3xl p-6 backdrop-blur-xl shadow-[0_0_30px_rgba(34,211,238,0.08)] transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold">Ask MACCE ✨</h3>
 
@@ -971,7 +1026,7 @@ generateVoice(aiReply)
                     stopVoice()
                     setVoiceEnabled(!voiceEnabled)
                   }}
-                  className={`text-xs rounded-xl px-3 py-2 ${
+                  className={`min-h-[44px] text-xs rounded-xl px-3 py-2 ${
                     voiceEnabled
                       ? "bg-cyan-500/20 text-cyan-200"
                       : "bg-white/5 text-gray-400"
@@ -1004,6 +1059,7 @@ generateVoice(aiReply)
                 <div ref={chatEndRef} />
               </div>
 
+            <div className="sticky bottom-20 z-40 bg-[#07111f]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-3 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30"></div>
               <input
                 type="text"
                 value={message}
@@ -1020,7 +1076,7 @@ generateVoice(aiReply)
               <button
                 onClick={sendMessage}
                 disabled={loading}
-                className="mt-4 w-full bg-gradient-to-r from-cyan-500 to-purple-500 px-5 py-3 rounded-2xl font-semibold hover:scale-[1.02] transition disabled:opacity-60"
+                className="mt-4 w-full min-h-[44px] bg-gradient-to-r from-cyan-500 to-purple-500 px-5 py-3 rounded-2xl font-semibold hover:scale-[1.02] transition disabled:opacity-60"
               >
                 {loading ? "Thinking..." : "Send"}
               </button>
@@ -1030,6 +1086,20 @@ generateVoice(aiReply)
           </div>
         </div>
       </section>
+      <button
+  onClick={() =>
+    setActiveTab("Dashboard")
+  }
+  className="fixed bottom-28 right-5 z-50 h-16 w-16 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 shadow-[0_0_35px_rgba(34,211,238,0.45)] flex items-center justify-center hover:scale-110 transition md:hidden"
+>
+  <span className="min-h-[44px] text-2xl">
+    ✨
+  </span>
+</button>
+      <MobileNav
+  activeTab={activeTab}
+  setActiveTab={setActiveTab}
+/>
     </main>
   )
 }
@@ -1074,19 +1144,19 @@ function DashboardContent({
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
         <Card title="Net Cash Flow" value={`$${net.toFixed(2)}`} note="Live from linked transactions" good={net >= 0} bad={net < 0} />
         <Card title="Income" value={`$${income.toFixed(2)}`} note="Synced from Plaid" good />
         <Card title="Expenses" value={`$${expenses.toFixed(2)}`} note="Synced from Plaid" bad />
         <Card title="Savings Rate" value={`${savingsRate}%`} note="Income minus expenses" good={savingsRate >= 20} bad={savingsRate < 0} />
       </div>
 
-      <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-300/20 rounded-3xl p-6 mt-6">
+      <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-300/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
   <h3 className="text-2xl font-semibold mb-3">
     Safe to Spend
   </h3>
 
-  <p className="text-5xl font-bold text-cyan-300 mb-3">
+  <p className="text-4xl lg:text-5xl font-bold text-cyan-300 mb-3">
     $
     {safeAmount.toFixed(2)}
   </p>
@@ -1117,7 +1187,7 @@ function DashboardContent({
     )}
 </div>
 
-<div className="bg-white/5 border border-pink-400/20 rounded-3xl p-6 mt-6">
+<div className="bg-white/5 border border-pink-400/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
   <h3 className="text-2xl font-semibold mb-5">
     Subscriptions
   </h3>
@@ -1141,7 +1211,7 @@ function DashboardContent({
               className="bg-pink-400/10 border border-pink-400/20 rounded-2xl p-4 flex justify-between items-center"
             >
               <div>
-                <p className="font-medium">
+                <p className="font-medium truncate">
                   {
                     subscription.merchant_name
                   }
@@ -1169,7 +1239,7 @@ function DashboardContent({
   </div>
 </div>
 
-      <div className="bg-white/5 border border-white/10 rounded-3xl p-6 mt-6">
+      <div className="bg-white/5 border border-white/10 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
   <h3 className="text-2xl font-semibold mb-4">
     Spending Categories
   </h3>
@@ -1192,9 +1262,9 @@ function DashboardContent({
   .replace(/\b\w/g, (c: string) =>
     c.toUpperCase()
   )}
-            className="flex justify-between items-center bg-white/5 rounded-2xl p-4"
+            className="flex justify-between items-center bg-white/5 rounded-2xl p-4 min-w-0"
           >
-            <p className="font-medium">
+            <p className="font-medium truncate">
               {entry[0]
   .replace(/_/g, " ")
   .toLowerCase()
@@ -1211,7 +1281,7 @@ function DashboardContent({
   </div>
 </div>
 
-<div className="bg-white/5 border border-cyan-400/20 rounded-3xl p-6 mt-6">
+<div className="bg-white/5 border border-cyan-400/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
   <h3 className="text-2xl font-semibold mb-5">
     MACCE Insights
   </h3>
@@ -1238,7 +1308,7 @@ function DashboardContent({
   </div>
 </div>
 
-<div className="bg-white/5 border border-orange-400/20 rounded-3xl p-6 mt-6">
+<div className="bg-white/5 border border-orange-400/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
   <h3 className="text-2xl font-semibold mb-5">
     Upcoming Bills
   </h3>
@@ -1259,10 +1329,10 @@ function DashboardContent({
         .map((bill, index) => (
           <div
             key={index}
-            className="bg-orange-400/10 border border-orange-400/20 rounded-2xl p-4 flex justify-between items-center"
+            className="bg-orange-400/10 border border-orange-400/20 rounded-2xl p-4 flex justify-between items-center min-w-0"
           >
             <div>
-              <p className="font-medium">
+              <p className="font-medium truncate">
                 {bill.merchant_name}
               </p>
 
@@ -1293,7 +1363,7 @@ function DashboardContent({
       <button
   onClick={() => openPlaid()}
   disabled={!plaidReady}
-  className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl px-5 py-4 font-semibold hover:scale-[1.01] transition disabled:opacity-50"
+  className="w-full min-h-[44px] bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl px-5 py-4 font-semibold hover:scale-[1.01] transition disabled:opacity-50"
 >
   Connect Bank
 </button>
@@ -1308,7 +1378,7 @@ function DashboardContent({
         <TransactionsMiniCard transactions={transactions} />
       </div>
 
-      <div className="bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-cyan-300/20 rounded-3xl p-5 text-cyan-200">
+      <div className="bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-cyan-300/20 rounded-3xl p-5 text-cyan-200 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
         ✨ Small steps today, big freedom tomorrow.
       </div>
     </>
@@ -1321,7 +1391,7 @@ function TransactionsContent({
   transactions: TransactionItem[]
 }) {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
       <h3 className="text-2xl font-semibold mb-6">
         Transactions
       </h3>
@@ -1386,7 +1456,7 @@ function BudgetContent() {
 
 function GoalsContent() {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
       <h3 className="text-2xl font-semibold mb-6">Goals</h3>
 
       <Goal title="Emergency Fund" amount="$3,250 / $10,000" progress="32%" width="32%" />
@@ -1472,7 +1542,7 @@ function SettingsContent({
 }) {
   return (
     <div className="space-y-6">
-      <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
+      <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
         <h3 className="text-2xl font-semibold mb-6">Settings</h3>
 
         <div className="space-y-6">
@@ -1489,7 +1559,7 @@ function SettingsContent({
                 stopVoice()
                 setVoiceEnabled(!voiceEnabled)
               }}
-              className={`rounded-2xl px-5 py-3 ${
+              className={`min-h-[44px] rounded-2xl px-5 py-3 ${
                 voiceEnabled
                   ? "bg-cyan-500/20 text-cyan-200"
                   : "bg-white/5 text-gray-400"
@@ -1507,7 +1577,7 @@ function SettingsContent({
                 <button
                   key={mode}
                   onClick={() => setPersonality(mode)}
-                  className={`rounded-2xl p-3 transition ${
+                  className={`min-h-[44px] rounded-2xl p-3 transition ${
                     personality === mode
                       ? "bg-cyan-500/20 border border-cyan-300/30 text-cyan-200"
                       : "bg-white/5 text-gray-300"
@@ -1527,7 +1597,7 @@ function SettingsContent({
                 <button
                   key={mode}
                   onClick={() => setTheme(mode)}
-                  className={`rounded-2xl p-3 transition ${
+                  className={`min-h-[44px] rounded-2xl p-3 transition ${
                     theme === mode
                       ? "bg-cyan-500/20 border border-cyan-300/30 text-cyan-200"
                       : "bg-white/5 text-gray-300"
@@ -1592,7 +1662,7 @@ function SettingsContent({
     console.log("Save Profile clicked")
     saveProfile()
   }}
-  className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl px-5 py-3 font-semibold hover:scale-[1.02] transition"
+  className="min-h-[44px] w-full min-h-[44px] bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl px-5 py-3 font-semibold hover:scale-[1.02] transition"
 >
   Save Profile
 </button>
@@ -1615,7 +1685,7 @@ function CashFlowCard({
   analytics: any
 }) {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
       <h3 className="text-2xl font-semibold mb-5">
         Cash Flow Overview
       </h3>
@@ -1702,7 +1772,7 @@ function SpendingBreakdownCard({
     ) || 1
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
       <h3 className="text-2xl font-semibold mb-5">
         Spending Breakdown
       </h3>
@@ -1750,7 +1820,7 @@ function SpendingBreakdownCard({
 
 function GoalsMiniCard() {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
       <h3 className="text-2xl font-semibold mb-5">
         Financial Goals
       </h3>
@@ -1792,7 +1862,7 @@ function TransactionsMiniCard({
   transactions: TransactionItem[]
 }) {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
       <h3 className="text-2xl font-semibold mb-5">
         Recent Transactions
       </h3>
@@ -1803,10 +1873,10 @@ function TransactionsMiniCard({
           .map((tx, index) => (
             <div
               key={index}
-              className="flex justify-between items-center bg-white/5 rounded-2xl p-4"
+              className="flex justify-between items-center bg-white/5 rounded-2xl p-4 min-w-0"
             >
               <div>
-                <p className="font-medium">
+                <p className="font-medium truncate">
                   {tx.name}
                 </p>
 
@@ -1841,7 +1911,7 @@ function TransactionsMiniCard({
 
 function UpcomingBills() {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
       <h3 className="text-xl font-semibold mb-4">Upcoming Bills</h3>
 
       <Bill name="Rent" date="Jun 1" amount="$1,200.00" />
@@ -1865,7 +1935,7 @@ function Card({
   bad?: boolean
 }) {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl">
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
       <p className="text-gray-400 mb-3">{title}</p>
       <h3 className="text-3xl font-bold mb-3">{value}</h3>
 
@@ -1971,7 +2041,7 @@ function BudgetCard({
   width: string
 }) {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
       <div className="flex justify-between mb-4">
         <div>
           <h3 className="text-xl font-semibold">{title}</h3>
@@ -1993,7 +2063,7 @@ function BudgetCard({
 
 function InsightCard({ title, text }: { title: string; text: string }) {
   return (
-    <div className="bg-white/5 border border-cyan-300/20 rounded-3xl p-6">
+    <div className="bg-white/5 border border-cyan-300/20 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
       <h3 className="text-xl font-semibold text-cyan-300 mb-3">{title}</h3>
       <p className="text-gray-300 leading-relaxed">{text}</p>
     </div>
@@ -2002,13 +2072,13 @@ function InsightCard({ title, text }: { title: string; text: string }) {
 
 function ReportCard({ title }: { title: string }) {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
       <h3 className="text-xl font-semibold mb-3">{title}</h3>
       <p className="text-gray-400 mb-5">
         Generate a clean MACCE report for this area.
       </p>
 
-      <button className="bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl px-5 py-3 font-semibold">
+      <button className="min-h-[44px] bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl px-5 py-3 font-semibold">
         Generate Report
       </button>
     </div>

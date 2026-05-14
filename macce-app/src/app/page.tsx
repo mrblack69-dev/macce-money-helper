@@ -870,8 +870,6 @@ generateVoice(aiReply)
           <div className="xl:col-span-8 space-y-6">
             {activeTab === "Dashboard" && (
   <DashboardContent
-    openPlaid={open}
-    plaidReady={ready}
     analytics={analytics}
     transactions={transactions}
     insights={insights}
@@ -886,47 +884,98 @@ generateVoice(aiReply)
   <>
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
       <Card
-  title="Net Cash Flow"
-  value={`$${Number(
-    analytics?.net || 0
-  ).toFixed(2)}`}
-  note="Live from linked transactions"
-  good={(analytics?.net || 0) >= 0}
-  bad={(analytics?.net || 0) < 0}
-/>
+        title="Net Cash Flow"
+        value={`$${Number(
+          analytics?.net || 0
+        ).toFixed(2)}`}
+        note="Live from linked transactions"
+        good={(analytics?.net || 0) >= 0}
+        bad={(analytics?.net || 0) < 0}
+      />
 
       <Card
         title="Income"
-  value={`$${Number(
-    analytics?.income || 0
-  ).toFixed(2)}`}
-  note="Synced from Plaid"
-  good
+        value={`$${Number(
+          analytics?.income || 0
+        ).toFixed(2)}`}
+        note="Synced from Plaid"
+        good
       />
 
       <Card
         title="Expenses"
-  value={`$${Number(
-    analytics?.expenses || 0
-  ).toFixed(2)}`}
-  note="Synced from Plaid"
-  bad
+        value={`$${Number(
+          analytics?.expenses || 0
+        ).toFixed(2)}`}
+        note="Synced from Plaid"
+        bad
       />
 
       <Card
-  title="Savings Rate"
-  value={`${Number(
-    analytics?.savingsRate || 0
-  ).toFixed(0)}%`}
-  note="Income minus expenses"
-  good={
-    (analytics?.savingsRate || 0) >= 20
-  }
-  bad={
-    (analytics?.savingsRate || 0) < 0
-  }
-/>
-    
+        title="Savings Rate"
+        value={`${Number(
+          analytics?.savingsRate || 0
+        ).toFixed(0)}%`}
+        note="Income minus expenses"
+        good={
+          (analytics?.savingsRate || 0) >= 20
+        }
+        bad={
+          (analytics?.savingsRate || 0) < 0
+        }
+      />
+    </div>
+
+    <div className="bg-white/5 border border-pink-400/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
+      <h3 className="text-2xl font-semibold mb-5">
+        Subscriptions
+      </h3>
+
+      <div className="space-y-3">
+        {subscriptions.length > 0 ? (
+          subscriptions
+            .sort(
+              (a, b) =>
+                b.average_amount -
+                a.average_amount
+            )
+            .slice(0, 5)
+            .map(
+              (
+                subscription,
+                index
+              ) => (
+                <div
+                  key={index}
+                  className="bg-pink-400/10 border border-pink-400/20 rounded-2xl p-4 flex justify-between items-center"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">
+                      {
+                        subscription.merchant_name
+                      }
+                    </p>
+
+                    <p className="text-sm text-white/60">
+                      ~ every 30 days
+                    </p>
+                  </div>
+
+                  <p className="text-pink-300 font-semibold">
+                    $
+                    {Number(
+                      subscription.average_amount
+                    ).toFixed(2)}
+                  </p>
+                </div>
+              )
+            )
+        ) : (
+          <div className="bg-white/5 rounded-2xl p-4 text-white/60">
+            No subscriptions detected yet
+          </div>
+        )}
+      </div>
     </div>
 
     <TransactionsContent
@@ -952,17 +1001,31 @@ generateVoice(aiReply)
 )}
 
 {activeTab === "Alerts" && (
-  <DashboardContent
-    openPlaid={open}
-    plaidReady={ready}
-    analytics={analytics}
-    transactions={transactions}
-    insights={insights}
-    bills={bills}
-    safeToSpend={safeToSpend}
-    subscriptions={subscriptions}
-    alerts={alerts}
-  />
+  <div className="space-y-6">
+    <div className="space-y-3">
+      {alerts.length > 0 &&
+        alerts.map((alert, index) => (
+          <div
+            key={index}
+            className="bg-yellow-400 text-black rounded-2xl p-4 shadow-lg"
+          >
+            <p className="font-semibold">
+              {alert.title}
+            </p>
+
+            <p className="text-sm text-black/80 mt-1">
+              {alert.message}
+            </p>
+          </div>
+        ))}
+    </div>
+
+    <UpcomingBills />
+
+    <SpendingBreakdownCard
+      analytics={analytics}
+    />
+  </div>
 )}
 
 {activeTab === "askMACCE" && (
@@ -1000,32 +1063,11 @@ generateVoice(aiReply)
     setTheme={setTheme}
     personality={personality}
     setPersonality={setPersonality}
+    openPlaid={open}
+    plaidReady={ready}
   />
 )}
 
-{activeTab === "Settings" && (
-  <SettingsContent
-    firstName={firstName}
-    setFirstName={setFirstName}
-    lastName={lastName}
-    setLastName={setLastName}
-    phone={phone}
-    setPhone={setPhone}
-    mainGoal={mainGoal}
-    setMainGoal={setMainGoal}
-    incomeRange={incomeRange}
-    setIncomeRange={setIncomeRange}
-    saveProfile={saveProfile}
-    profileSaved={profileSaved}
-    voiceEnabled={voiceEnabled}
-    setVoiceEnabled={setVoiceEnabled}
-    stopVoice={stopVoice}
-    theme={theme}
-    setTheme={setTheme}
-    personality={personality}
-    setPersonality={setPersonality}
-  />
-)}
           </div>
 
           <div className="xl:col-span-4 space-y-6">
@@ -1102,18 +1144,12 @@ function getThemeBackground(theme: string) {
 }
 
 function DashboardContent({
-  openPlaid,
-  plaidReady,
   analytics,
   transactions,
   insights,
-  bills,
   safeToSpend,
-  subscriptions,
   alerts,
 }: {
-  openPlaid: any
-  plaidReady: boolean
   analytics: any
   transactions: TransactionItem[]
   insights: string[]
@@ -1172,59 +1208,38 @@ function DashboardContent({
     )}
 </div>
 
-<div className="bg-white/5 border border-pink-400/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
+
+
+      
+
+<div className="bg-white/5 border border-cyan-400/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
   <h3 className="text-2xl font-semibold mb-5">
-    Subscriptions
+    MACCE Insights
   </h3>
 
   <div className="space-y-3">
-    {subscriptions.length > 0 ? (
-      subscriptions
-        .sort(
-          (a, b) =>
-            b.average_amount -
-            a.average_amount
+    {insights.length > 0 ? (
+      insights.map(
+        (insight, index) => (
+          <div
+            key={index}
+            className="bg-cyan-400/10 border border-cyan-400/20 rounded-2xl p-4"
+          >
+            <p className="text-cyan-100">
+              {insight}
+            </p>
+          </div>
         )
-        .slice(0, 5)
-        .map(
-          (
-            subscription,
-            index
-          ) => (
-            <div
-              key={index}
-              className="bg-pink-400/10 border border-pink-400/20 rounded-2xl p-4 flex justify-between items-center"
-            >
-              <div>
-                <p className="font-medium truncate">
-                  {
-                    subscription.merchant_name
-                  }
-                </p>
-
-                <p className="text-sm text-white/60">
-                  ~ every 30 days
-                </p>
-              </div>
-
-              <p className="text-pink-300 font-semibold">
-                $
-                {Number(
-                  subscription.average_amount
-                ).toFixed(2)}
-              </p>
-            </div>
-          )
-        )
+      )
     ) : (
       <div className="bg-white/5 rounded-2xl p-4 text-white/60">
-        No subscriptions detected yet
+        No insights yet
       </div>
     )}
   </div>
 </div>
 
-      <div className="bg-white/5 border border-white/10 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
+<div className="bg-white/5 border border-white/10 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
   <h3 className="text-2xl font-semibold mb-4">
     Spending Categories
   </h3>
@@ -1265,93 +1280,9 @@ function DashboardContent({
         ))}
   </div>
 </div>
+<GoalsMiniCard />
 
-<div className="bg-white/5 border border-cyan-400/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
-  <h3 className="text-2xl font-semibold mb-5">
-    MACCE Insights
-  </h3>
-
-  <div className="space-y-3">
-    {insights.length > 0 ? (
-      insights.map(
-        (insight, index) => (
-          <div
-            key={index}
-            className="bg-cyan-400/10 border border-cyan-400/20 rounded-2xl p-4"
-          >
-            <p className="text-cyan-100">
-              {insight}
-            </p>
-          </div>
-        )
-      )
-    ) : (
-      <div className="bg-white/5 rounded-2xl p-4 text-white/60">
-        No insights yet
-      </div>
-    )}
-  </div>
-</div>
-
-<div className="bg-white/5 border border-orange-400/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
-  <h3 className="text-2xl font-semibold mb-5">
-    Upcoming Bills
-  </h3>
-
-  <div className="space-y-3">
-    {bills.length > 0 ? (
-      bills
-        .sort(
-          (a, b) =>
-            new Date(
-              a.predicted_next_date
-            ).getTime() -
-            new Date(
-              b.predicted_next_date
-            ).getTime()
-        )
-        .slice(0, 5)
-        .map((bill, index) => (
-          <div
-            key={index}
-            className="bg-orange-400/10 border border-orange-400/20 rounded-2xl p-4 flex justify-between items-center min-w-0"
-          >
-            <div>
-              <p className="font-medium truncate">
-                {bill.merchant_name}
-              </p>
-
-              <p className="text-sm text-white/60">
-                Due around{" "}
-                {
-                  bill.predicted_next_date
-                }
-              </p>
-            </div>
-
-            <p className="text-orange-300 font-semibold">
-              $
-              {Number(
-                bill.average_amount
-              ).toFixed(2)}
-            </p>
-          </div>
-        ))
-    ) : (
-      <div className="bg-white/5 rounded-2xl p-4 text-white/60">
-        No recurring bills detected yet
-      </div>
-    )}
-  </div>
-</div>
-
-      <button
-  onClick={() => openPlaid()}
-  disabled={!plaidReady}
-  className="w-full min-h-[44px] bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl px-5 py-4 font-semibold hover:scale-[1.01] transition disabled:opacity-50"
->
-  Connect Bank
-</button>
+      
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CashFlowCard analytics={analytics} />
@@ -1504,6 +1435,8 @@ function SettingsContent({
   setTheme,
   personality,
   setPersonality,
+  openPlaid,
+  plaidReady,
 }: {
     firstName: string
   setFirstName: (value: string) => void
@@ -1524,20 +1457,49 @@ function SettingsContent({
   setTheme: (value: string) => void
   personality: string
   setPersonality: (value: string) => void
+  openPlaid: any
+  plaidReady: boolean
 }) {
   return (
+  <>
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-5 mb-6">
+  <button
+    onClick={() => openPlaid()}
+    disabled={!plaidReady}
+    className="w-full min-h-[44px] flex items-center justify-between rounded-2xl bg-white/5 border border-white/10 px-4 py-4 hover:bg-white/10 transition disabled:opacity-50"
+  >
+    <div className="flex items-center gap-3">
+      <span className="text-2xl">
+        ☰
+      </span>
+
+      <div className="text-left">
+        <p className="font-semibold">
+          Financial Connections
+        </p>
+
+        <p className="text-sm text-white/60">
+          Manage linked banks
+        </p>
+      </div>
+    </div>
+  </button>
+</div>
+
     <div className="space-y-6">
       <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
         <h3 className="text-2xl font-semibold mb-6">Settings</h3>
-
+        
         <div className="space-y-6">
           <div className="flex justify-between items-center border-b border-white/10 py-4">
             <div>
+                
               <p className="font-semibold">MACCE Voice</p>
               <p className="text-gray-400 text-sm">
                 Turn AI voice playback on or off.
               </p>
             </div>
+            
 
             <button
               onClick={() => {
@@ -1647,7 +1609,7 @@ function SettingsContent({
     console.log("Save Profile clicked")
     saveProfile()
   }}
-  className="min-h-[44px] w-full min-h-[44px] bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl px-5 py-3 font-semibold hover:scale-[1.02] transition"
+  className="w-full min-h-[44px] bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl px-5 py-3 font-semibold hover:scale-[1.02] transition"
 >
   Save Profile
 </button>
@@ -1661,6 +1623,7 @@ function SettingsContent({
         </div>
       </div>
     </div>
+  </>
   )
 }
 

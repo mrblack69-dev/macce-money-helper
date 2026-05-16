@@ -12,6 +12,7 @@ type Props = {
   ) => void
   stopVoice: () => void
   chatEndRef: any
+  chatBoxRef: any
 }
 
 export default function AskMacceContent({
@@ -24,6 +25,7 @@ export default function AskMacceContent({
   setVoiceEnabled,
   stopVoice,
   chatEndRef,
+  chatBoxRef,
 }: Props) {
   return (
     <div className="space-y-4">
@@ -52,7 +54,10 @@ export default function AskMacceContent({
           </button>
         </div>
 
-        <div className="space-y-3 h-[55vh] overflow-y-auto mb-4 pr-2">
+        <div
+  ref={chatBoxRef}
+  className="space-y-3 h-[55vh] overflow-y-auto mb-4 pr-2"
+>
           {chat.map((msg, index) => (
             <div
               key={index}

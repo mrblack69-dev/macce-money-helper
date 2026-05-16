@@ -101,6 +101,11 @@ const [profileSaved, setProfileSaved] = useState(false)
 
   const chatEndRef = 
     useRef<HTMLDivElement | null>(null)
+    const chatBoxRef =
+  useRef<HTMLDivElement | null>(null)
+
+const voiceRunRef =
+  useRef(0)
 
   const mediaRecorderRef =
     useRef<MediaRecorder | null>(null)
@@ -114,10 +119,15 @@ const [profileSaved, setProfileSaved] = useState(false)
   
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({
-  behavior: "smooth",
-})
-  }, [chat, loading])
+  const box = chatBoxRef.current
+
+  if (!box) return
+
+  box.scrollTo({
+    top: box.scrollHeight,
+    behavior: "smooth",
+  })
+}, [chat, loading])
   useEffect(() => {
   async function loadProfile() {
     const {
@@ -489,6 +499,8 @@ async function loadAlerts() {
 }
 
   function stopVoice() {
+voiceRunRef.current += 1
+
   audioQueue.current = []
 
   if (currentAudio.current) {
@@ -562,6 +574,28 @@ async function generateVoice(text: string) {
     playAudioQueue()
   } catch {
     // Voice should never break chat
+  }
+}
+
+async function speakReplyInChunks(text: string) {
+  if (!voiceEnabled) return
+  if (!text.trim()) return
+
+  const runId =
+    ++voiceRunRef.current
+
+  const chunks =
+    text
+      .match(/[^.!?]+[.!?]+|[^.!?]+$/g)
+      ?.map((chunk) => chunk.trim())
+      .filter(Boolean) || [text]
+
+  for (const chunk of chunks) {
+    if (runId !== voiceRunRef.current) {
+      return
+    }
+
+    await generateVoice(chunk)
   }
 }
 
@@ -677,7 +711,7 @@ async function sendMessage(voiceText?: string) {
       data.reply ||
       "I’m here, but I didn’t get a clean response that time."
 
-    generateVoice(aiReply)
+    speakReplyInChunks(aiReply)
 
     let typedText = ""
 
@@ -1234,6 +1268,7 @@ async function startVoiceAsk() {
     setVoiceEnabled={setVoiceEnabled}
     stopVoice={stopVoice}
     chatEndRef={chatEndRef}
+    chatBoxRef={chatBoxRef}
   />
 )}
 

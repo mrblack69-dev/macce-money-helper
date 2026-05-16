@@ -104,8 +104,7 @@ const [profileSaved, setProfileSaved] = useState(false)
     const chatBoxRef =
   useRef<HTMLDivElement | null>(null)
 
-const voiceRunRef =
-  useRef(0)
+const voiceRunRef = useRef(0)
 
   const mediaRecorderRef =
     useRef<MediaRecorder | null>(null)
@@ -564,34 +563,85 @@ async function generateVoice(text: string) {
       body: JSON.stringify({ text }),
     })
 
-    if (!voiceRes.ok) return
+    if (!voiceRes.ok) {
+      const errorText = await voiceRes.text()
+      console.error("Voice API failed:", errorText)
+      return
+    }
 
     const audioBlob = await voiceRes.blob()
     const audioUrl = URL.createObjectURL(audioBlob)
     const audio = new Audio(audioUrl)
 
+    audio.addEventListener("ended", () => {
+  URL.revokeObjectURL(audioUrl)
+})
+
     audioQueue.current.push(audio)
     playAudioQueue()
-  } catch {
-    // Voice should never break chat
+  } catch (error) {
+    console.error("Voice generation failed:", error)
   }
 }
 
-async function speakReplyInChunks(text: string) {
+function splitLongSpeechChunk(
+  text: string,
+  maxLength = 220
+) {
+  const words = text.split(" ")
+  const chunks: string[] = []
+  let current = ""
+
+  for (const word of words) {
+    if (
+      (current + " " + word).length >
+      maxLength
+    ) {
+      if (current.trim()) {
+        chunks.push(current.trim())
+      }
+
+      current = word
+    } else {
+      current += " " + word
+    }
+  }
+
+  if (current.trim()) {
+    chunks.push(current.trim())
+  }
+
+  return chunks
+}
+
+async function speakReplyInChunks(
+  text: string
+) {
   if (!voiceEnabled) return
   if (!text.trim()) return
 
   const runId =
     ++voiceRunRef.current
 
-  const chunks =
+  const sentenceChunks =
     text
       .match(/[^.!?]+[.!?]+|[^.!?]+$/g)
-      ?.map((chunk) => chunk.trim())
+      ?.map((chunk) =>
+        chunk.trim()
+      )
       .filter(Boolean) || [text]
 
+  const chunks =
+    sentenceChunks.flatMap(
+      (chunk) =>
+        splitLongSpeechChunk(chunk)
+    )
+
   for (const chunk of chunks) {
-    if (runId !== voiceRunRef.current) {
+    if (
+      runId !==
+      voiceRunRef.current
+    ) {
       return
     }
 

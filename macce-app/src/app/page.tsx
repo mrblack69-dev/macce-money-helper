@@ -112,10 +112,16 @@ const voiceRunRef = useRef(0)
   const audioChunksRef =
     useRef<Blob[]>([])
 
-  const audioQueue = useRef<HTMLAudioElement[]>([])
-  const currentAudio = useRef<HTMLAudioElement | null>(null)
-  const isPlaying = useRef(false)
-  const audioContextRef = useRef<any>(null)
+  const audioQueue =
+  useRef<string[]>([])
+
+const audioPlayerRef =
+  useRef<HTMLAudioElement | null>(null)
+
+const isPlaying = useRef(false)
+
+const audioContextRef =
+  useRef<any>(null)
   
 
   useEffect(() => {
@@ -529,9 +535,11 @@ async function unlockMobileAudio() {
       audioContextRef.current.createBufferSource()
 
     source.buffer = buffer
+
     source.connect(
       audioContextRef.current.destination
     )
+
     source.start(0)
   } catch (error) {
     console.error(
@@ -542,14 +550,27 @@ async function unlockMobileAudio() {
 }
 
   function stopVoice() {
-voiceRunRef.current += 1
+  voiceRunRef.current += 1
+
+  audioQueue.current.forEach((url) => {
+    if (url.startsWith("blob:")) {
+      URL.revokeObjectURL(url)
+    }
+  })
 
   audioQueue.current = []
 
-  if (currentAudio.current) {
-    currentAudio.current.pause()
-    currentAudio.current.currentTime = 0
-    currentAudio.current = null
+  const player = audioPlayerRef.current
+
+  if (player) {
+    player.pause()
+
+    if (player.src?.startsWith("blob:")) {
+      URL.revokeObjectURL(player.src)
+    }
+
+    player.removeAttribute("src")
+    player.load()
   }
 
   isPlaying.current = false
@@ -565,33 +586,68 @@ async function playAudioQueue() {
     return
   }
 
-  isPlaying.current = true
+  const player = audioPlayerRef.current
 
-  const audio = audioQueue.current.shift()
-
-  if (!audio) {
-    isPlaying.current = false
+  if (!player) {
+    console.error("Audio player ref not ready")
     return
   }
 
-  currentAudio.current = audio
+  const audioUrl =
+    audioQueue.current.shift()
 
-  audio.onended = () => {
-    currentAudio.current = null
+  if (!audioUrl) return
+
+  isPlaying.current = true
+
+  player.pause()
+  player.src = audioUrl
+  player.load()
+
+  player.onended = () => {
+    if (audioUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(audioUrl)
+    }
+
+    player.removeAttribute("src")
+    player.load()
+
     isPlaying.current = false
+
     playAudioQueue()
   }
 
-  audio.onerror = () => {
-    currentAudio.current = null
+  player.onerror = (error) => {
+    console.error("Audio playback error:", error)
+
+    if (audioUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(audioUrl)
+    }
+
+    player.removeAttribute("src")
+    player.load()
+
     isPlaying.current = false
+
     playAudioQueue()
   }
 
-  audio.play().catch(() => {
-    currentAudio.current = null
+  try {
+    await player.play()
+  } catch (error) {
+    console.error("Audio play failed:", error)
+
+    if (audioUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(audioUrl)
+    }
+
+    player.removeAttribute("src")
+    player.load()
+
     isPlaying.current = false
-  })
+
+    playAudioQueue()
+  }
 }
 
 async function generateVoice(text: string) {
@@ -608,23 +664,31 @@ async function generateVoice(text: string) {
     })
 
     if (!voiceRes.ok) {
-      const errorText = await voiceRes.text()
-      console.error("Voice API failed:", errorText)
+      const errorText =
+        await voiceRes.text()
+
+      console.error(
+        "Voice API failed:",
+        errorText
+      )
+
       return
     }
 
-    const audioBlob = await voiceRes.blob()
-    const audioUrl = URL.createObjectURL(audioBlob)
-    const audio = new Audio(audioUrl)
+    const audioBlob =
+      await voiceRes.blob()
 
-    audio.addEventListener("ended", () => {
-  URL.revokeObjectURL(audioUrl)
-})
+    const audioUrl =
+      URL.createObjectURL(audioBlob)
 
-    audioQueue.current.push(audio)
+    audioQueue.current.push(audioUrl)
+
     playAudioQueue()
   } catch (error) {
-    console.error("Voice generation failed:", error)
+    console.error(
+      "Voice generation failed:",
+      error
+    )
   }
 }
 
@@ -736,6 +800,14 @@ async function saveProfile() {
   }, 2500)
 }
 
+function cleanMacceResponse(text: string) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/#{1,6}\s/g, "")
+    .trim()
+}
+
 async function sendMessage(voiceText?: string) {
   const currentMessage =
     (voiceText || message).trim()
@@ -801,9 +873,12 @@ async function sendMessage(voiceText?: string) {
     const data =
       await financialResponse.json()
 
-    const aiReply =
-      data.reply ||
-      "I’m here, but I didn’t get a clean response that time."
+    const rawReply =
+  data.reply ||
+  "I’m here, but I didn’t get a clean response that time."
+
+const aiReply =
+  cleanMacceResponse(rawReply)
 
     speakReplyInChunks(aiReply)
 
@@ -1456,6 +1531,11 @@ async function startVoiceAsk() {
       : "✨"}
 </span>
 </button>
+      <audio
+  ref={audioPlayerRef}
+  preload="auto"
+  style={{ display: "none" }}
+/>
       <MobileNav
   activeTab={activeTab}
   setActiveTab={setActiveTab}

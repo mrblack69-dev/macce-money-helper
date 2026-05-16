@@ -75,12 +75,16 @@ export default function Home() {
   const [password, setPassword] = useState("")
 
   const [message, setMessage] = useState("")
-  const [loading, setLoading] = useState(false)
+const [loading, setLoading] = useState(false)
+const [isListening, setIsListening] = useState(false)
+const [isTranscribing, setIsTranscribing] =
+  useState(false)
 
-  const [voiceEnabled, setVoiceEnabled] = useState(true)
-  const [theme, setTheme] = useState("Neon Dark")
-  const [personality, setPersonality] = useState("Companion")
-  const [firstName, setFirstName] = useState("")
+const [voiceEnabled, setVoiceEnabled] = useState(true)
+const [theme, setTheme] = useState("Neon Dark")
+const [personality, setPersonality] = useState("Companion")
+
+const [firstName, setFirstName] = useState("")
 const [lastName, setLastName] = useState("")
 const [phone, setPhone] = useState("")
 const [mainGoal, setMainGoal] = useState("")
@@ -95,10 +99,19 @@ const [profileSaved, setProfileSaved] = useState(false)
     },
   ])
 
-  const chatEndRef = useRef<HTMLDivElement | null>(null)
+  const chatEndRef = 
+    useRef<HTMLDivElement | null>(null)
+
+  const mediaRecorderRef =
+    useRef<MediaRecorder | null>(null)
+
+  const audioChunksRef =
+    useRef<Blob[]>([])
+
   const audioQueue = useRef<HTMLAudioElement[]>([])
   const currentAudio = useRef<HTMLAudioElement | null>(null)
   const isPlaying = useRef(false)
+  
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({
@@ -476,77 +489,83 @@ async function loadAlerts() {
 }
 
   function stopVoice() {
-    audioQueue.current = []
+  audioQueue.current = []
 
-    if (currentAudio.current) {
-      currentAudio.current.pause()
-      currentAudio.current.currentTime = 0
-      currentAudio.current = null
-    }
+  if (currentAudio.current) {
+    currentAudio.current.pause()
+    currentAudio.current.currentTime = 0
+    currentAudio.current = null
+  }
 
+  isPlaying.current = false
+}
+
+async function playAudioQueue() {
+  if (!voiceEnabled) return
+
+  if (
+    isPlaying.current ||
+    audioQueue.current.length === 0
+  ) {
+    return
+  }
+
+  isPlaying.current = true
+
+  const audio = audioQueue.current.shift()
+
+  if (!audio) {
     isPlaying.current = false
+    return
   }
 
-  async function playAudioQueue() {
-    if (!voiceEnabled) return
-    if (isPlaying.current || audioQueue.current.length === 0) return
+  currentAudio.current = audio
 
-    isPlaying.current = true
+  audio.onended = () => {
+    currentAudio.current = null
+    isPlaying.current = false
+    playAudioQueue()
+  }
 
-    const audio = audioQueue.current.shift()
+  audio.onerror = () => {
+    currentAudio.current = null
+    isPlaying.current = false
+    playAudioQueue()
+  }
 
-    if (!audio) {
-      isPlaying.current = false
-      return
-    }
+  audio.play().catch(() => {
+    currentAudio.current = null
+    isPlaying.current = false
+  })
+}
 
-    currentAudio.current = audio
+async function generateVoice(text: string) {
+  if (!voiceEnabled) return
+  if (!text.trim()) return
 
-    audio.onended = () => {
-      currentAudio.current = null
-      isPlaying.current = false
-      playAudioQueue()
-    }
-
-    audio.onerror = () => {
-      currentAudio.current = null
-      isPlaying.current = false
-      playAudioQueue()
-    }
-
-    audio.play().catch(() => {
-      currentAudio.current = null
-      isPlaying.current = false
+  try {
+    const voiceRes = await fetch("/api/voice", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text }),
     })
+
+    if (!voiceRes.ok) return
+
+    const audioBlob = await voiceRes.blob()
+    const audioUrl = URL.createObjectURL(audioBlob)
+    const audio = new Audio(audioUrl)
+
+    audioQueue.current.push(audio)
+    playAudioQueue()
+  } catch {
+    // Voice should never break chat
   }
+}
 
-  async function generateVoice(text: string) {
-    if (!voiceEnabled) return
-    if (!text.trim()) return
-
-    try {
-      const voiceRes = await fetch("/api/voice", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text }),
-      })
-
-      if (!voiceRes.ok) return
-
-      const audioBlob = await voiceRes.blob()
-      const audioUrl = URL.createObjectURL(audioBlob)
-      const audio = new Audio(audioUrl)
-
-      audioQueue.current.push(audio)
-      playAudioQueue()
-    } catch {
-      // Voice should never break chat
-    }
-  }
-
-  async function saveProfile() {
+async function saveProfile() {
   console.log("saveProfile running")
 
   const {
@@ -568,7 +587,7 @@ async function loadAlerts() {
       id: user.id,
       first_name: firstName,
       last_name: lastName,
-      phone: phone,
+      phone,
       main_goal: mainGoal,
       income_range: incomeRange,
     })
@@ -588,45 +607,51 @@ async function loadAlerts() {
     setProfileSaved(false)
   }, 2500)
 }
-  async function sendMessage() {
-    if (!message.trim() || loading) return
 
-    stopVoice()
+async function sendMessage(voiceText?: string) {
+  const currentMessage =
+    (voiceText || message).trim()
 
-    const currentMessage = message.trim()
+  if (!currentMessage || loading) return
 
-    setChat((prev) => [
-      ...prev,
-      {
-        role: "user",
-        content: currentMessage,
-      },
-      {
-        role: "assistant",
-        content: "",
-      },
-    ])
+  stopVoice()
 
-    setMessage("")
-    setLoading(true)
-
-    try {
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   if (!user) {
-    throw new Error("No user found")
+    alert("Please log in first.")
+    return
   }
 
-  const financialResponse =
-    await fetch(
-      "/api/financial-chat",
-      {
+  setMessage("")
+  setLoading(true)
+
+  setChat((prev) => [
+    ...prev,
+    {
+      role: "user",
+      content: currentMessage,
+    },
+    {
+      role: "assistant",
+      content: "",
+    },
+  ])
+
+  await supabase.from("chats").insert({
+    user_id: user.id,
+    role: "user",
+    content: currentMessage,
+  })
+
+  try {
+    const financialResponse =
+      await fetch("/api/financial-chat", {
         method: "POST",
         headers: {
-          "Content-Type":
-            "application/json",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           user_id: user.id,
@@ -639,49 +664,219 @@ async function loadAlerts() {
             incomeRange,
           },
         }),
-      }
-    )
+      })
 
-  if (!financialResponse.ok) {
-    throw new Error(
-      "Chat request failed"
-    )
-  }
+    if (!financialResponse.ok) {
+      throw new Error("Chat request failed")
+    }
 
-  const data =
-    await financialResponse.json()
+    const data =
+      await financialResponse.json()
 
-  const aiReply =
-  data.reply ||
-  "No response generated"
+    const aiReply =
+      data.reply ||
+      "I’m here, but I didn’t get a clean response that time."
 
-console.log(aiReply)
+    generateVoice(aiReply)
 
-setChat((prev) => [
-  ...prev,
-  {
-    role: "assistant",
-    content: aiReply,
-  },
-])
+    let typedText = ""
 
-generateVoice(aiReply)
-} catch {
+    for (const char of aiReply) {
+      typedText += char
+
       setChat((prev) => {
         const updated = [...prev]
 
         updated[updated.length - 1] = {
           role: "assistant",
-          content: "Something broke. Check the terminal and try again.",
+          content: typedText,
         }
 
         return updated
       })
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, 10)
+      )
     }
 
-    setLoading(false)
+    await supabase.from("chats").insert({
+      user_id: user.id,
+      role: "assistant",
+      content: aiReply,
+    })
+  } catch (error) {
+    console.error(error)
+
+    setChat((prev) => {
+      const updated = [...prev]
+
+      updated[updated.length - 1] = {
+        role: "assistant",
+        content:
+          "Something glitched. Try me again in a second.",
+      }
+
+      return updated
+    })
   }
 
+  setLoading(false)
+}
+
+async function transcribeAndSendAudio(audioBlob: Blob) {
+  const formData = new FormData()
+
+  const fileType =
+    audioBlob.type || "audio/webm"
+
+  let extension = "webm"
+
+  if (fileType.includes("mp4")) {
+    extension = "mp4"
+  }
+
+  if (fileType.includes("ogg")) {
+    extension = "ogg"
+  }
+
+  if (fileType.includes("wav")) {
+    extension = "wav"
+  }
+
+  const audioFile = new File(
+    [audioBlob],
+    `macce-voice.${extension}`,
+    {
+      type: fileType,
+    }
+  )
+
+  formData.append("audio", audioFile)
+
+  const response = await fetch(
+    "/api/transcribe",
+    {
+      method: "POST",
+      body: formData,
+    }
+  )
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(
+      data.error ||
+        "Audio transcription failed"
+    )
+  }
+
+  const transcript =
+    data.text?.trim() || ""
+
+  if (!transcript) {
+    alert("I didn’t catch that. Try again.")
+    return
+  }
+
+  setMessage(transcript)
+
+  await sendMessage(transcript)
+}
+
+async function startVoiceAsk() {
+  setActiveTab("askMACCE")
+
+  if (!navigator.mediaDevices) {
+    alert(
+      "Microphone access is not supported in this browser."
+    )
+    return
+  }
+
+  if (isListening) {
+    mediaRecorderRef.current?.stop()
+    return
+  }
+
+  try {
+    const stream =
+      await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      })
+
+    audioChunksRef.current = []
+
+    let mimeType = ""
+
+    if (
+      MediaRecorder.isTypeSupported(
+        "audio/webm;codecs=opus"
+      )
+    ) {
+      mimeType = "audio/webm;codecs=opus"
+    } else if (
+      MediaRecorder.isTypeSupported("audio/mp4")
+    ) {
+      mimeType = "audio/mp4"
+    }
+
+    const recorder = mimeType
+      ? new MediaRecorder(stream, {
+          mimeType,
+        })
+      : new MediaRecorder(stream)
+
+    mediaRecorderRef.current = recorder
+
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunksRef.current.push(event.data)
+      }
+    }
+
+    recorder.onstop = async () => {
+      setIsListening(false)
+      setIsTranscribing(true)
+
+      stream.getTracks().forEach((track) => {
+        track.stop()
+      })
+
+      const audioBlob = new Blob(
+        audioChunksRef.current,
+        {
+          type:
+            recorder.mimeType ||
+            "audio/webm",
+        }
+      )
+
+      try {
+        await transcribeAndSendAudio(audioBlob)
+      } catch (error) {
+        console.error(error)
+
+        alert(
+          "MACCE couldn’t process that audio. Try again."
+        )
+      } finally {
+        setIsTranscribing(false)
+      }
+    }
+
+    recorder.start()
+    setIsListening(true)
+  } catch (error) {
+    console.error(error)
+
+    setIsListening(false)
+
+    alert(
+      "Microphone access failed. Check your browser permissions."
+    )
+  }
+}
   if (!loggedIn) {
     return (
       <main className={`min-h-screen ${getThemeBackground(theme)} text-white flex items-center justify-center p-6 overflow-hidden`}>
@@ -1119,48 +1314,16 @@ generateVoice(aiReply)
         </div>
       </section>
       <button
-  onClick={() => {
-  setActiveTab("askMACCE")
-
-  if (
-    "webkitSpeechRecognition" in
-    window
-  ) {
-    const recognition =
-      new (
-        window as any
-      ).webkitSpeechRecognition()
-
-    recognition.continuous =
-      false
-
-    recognition.interimResults =
-      false
-
-    recognition.lang = "en-US"
-
-    recognition.onresult = (
-      event: any
-    ) => {
-      const transcript =
-        event.results[0][0]
-          .transcript
-
-      setMessage(transcript)
-
-      setTimeout(() => {
-        sendMessage()
-      }, 300)
-    }
-
-    recognition.start()
-  }
-}}
+  onClick={startVoiceAsk}
   className="fixed bottom-28 right-5 z-50 h-16 w-16 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 shadow-[0_0_35px_rgba(34,211,238,0.45)] flex items-center justify-center hover:scale-110 transition md:hidden"
 >
-  <span className="min-h-[44px] text-2xl">
-    ✨
-  </span>
+  <span className="text-2xl">
+  {isTranscribing
+    ? "⏳"
+    : isListening
+      ? "🎙️"
+      : "✨"}
+</span>
 </button>
       <MobileNav
   activeTab={activeTab}

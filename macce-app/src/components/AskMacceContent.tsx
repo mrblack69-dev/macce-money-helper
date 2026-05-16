@@ -95,14 +95,12 @@ export default function AskMacceContent({
           />
 
           <button
-            onClick={sendMessage}
-            disabled={loading}
-            className="min-h-[44px] mt-4 w-full bg-gradient-to-r from-cyan-500 to-purple-500 px-5 py-3 rounded-2xl font-semibold hover:scale-[1.02] transition disabled:opacity-60"
-          >
-            {loading
-              ? "Thinking..."
-              : "Send"}
-          </button>
+  onClick={() => sendMessage()}
+  disabled={loading}
+  className="min-h-[44px] mt-4 w-full bg-gradient-to-r from-cyan-500 to-purple-500 px-5 py-3 rounded-2xl font-semibold hover:scale-[1.02] transition disabled:opacity-60"
+>
+  {loading ? "Thinking..." : "Send"}
+</button>
         </div>
       </div>
     </div>

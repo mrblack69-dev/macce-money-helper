@@ -115,6 +115,7 @@ const voiceRunRef = useRef(0)
   const audioQueue = useRef<HTMLAudioElement[]>([])
   const currentAudio = useRef<HTMLAudioElement | null>(null)
   const isPlaying = useRef(false)
+  const audioContextRef = useRef<any>(null)
   
 
   useEffect(() => {
@@ -497,6 +498,49 @@ async function loadAlerts() {
   }
 }
 
+async function unlockMobileAudio() {
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as any).webkitAudioContext
+
+    if (!AudioContextClass) return
+
+    if (!audioContextRef.current) {
+      audioContextRef.current =
+        new AudioContextClass()
+    }
+
+    if (
+      audioContextRef.current.state ===
+      "suspended"
+    ) {
+      await audioContextRef.current.resume()
+    }
+
+    const buffer =
+      audioContextRef.current.createBuffer(
+        1,
+        1,
+        22050
+      )
+
+    const source =
+      audioContextRef.current.createBufferSource()
+
+    source.buffer = buffer
+    source.connect(
+      audioContextRef.current.destination
+    )
+    source.start(0)
+  } catch (error) {
+    console.error(
+      "Audio unlock failed:",
+      error
+    )
+  }
+}
+
   function stopVoice() {
 voiceRunRef.current += 1
 
@@ -870,6 +914,8 @@ async function transcribeAndSendAudio(audioBlob: Blob) {
 
 async function startVoiceAsk() {
   setActiveTab("askMACCE")
+
+  unlockMobileAudio()
 
   if (!navigator.mediaDevices) {
     alert(

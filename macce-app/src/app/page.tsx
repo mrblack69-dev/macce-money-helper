@@ -1119,9 +1119,43 @@ generateVoice(aiReply)
         </div>
       </section>
       <button
-  onClick={() =>
-    setActiveTab("Dashboard")
+  onClick={() => {
+  setActiveTab("askMACCE")
+
+  if (
+    "webkitSpeechRecognition" in
+    window
+  ) {
+    const recognition =
+      new (
+        window as any
+      ).webkitSpeechRecognition()
+
+    recognition.continuous =
+      false
+
+    recognition.interimResults =
+      false
+
+    recognition.lang = "en-US"
+
+    recognition.onresult = (
+      event: any
+    ) => {
+      const transcript =
+        event.results[0][0]
+          .transcript
+
+      setMessage(transcript)
+
+      setTimeout(() => {
+        sendMessage()
+      }, 300)
+    }
+
+    recognition.start()
   }
+}}
   className="fixed bottom-28 right-5 z-50 h-16 w-16 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 shadow-[0_0_35px_rgba(34,211,238,0.45)] flex items-center justify-center hover:scale-110 transition md:hidden"
 >
   <span className="min-h-[44px] text-2xl">

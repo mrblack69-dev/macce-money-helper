@@ -652,16 +652,20 @@ async function playAudioQueue() {
 
 async function generateVoice(text: string) {
   if (!voiceEnabled) return
-  if (!text.trim()) return
+if (!text.trim()) return
 
-  try {
-    const voiceRes = await fetch("/api/voice", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text }),
-    })
+const runId = voiceRunRef.current
+
+if (runId !== voiceRunRef.current) return
+
+try {
+  const voiceRes = await fetch("/api/voice", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ text }),
+  })
 
     if (!voiceRes.ok) {
       const errorText =
@@ -694,7 +698,7 @@ async function generateVoice(text: string) {
 
 function splitLongSpeechChunk(
   text: string,
-  maxLength = 220
+  maxLength = 140
 ) {
   const words = text.split(" ")
   const chunks: string[] = []
@@ -728,8 +732,7 @@ async function speakReplyInChunks(
   if (!voiceEnabled) return
   if (!text.trim()) return
 
-  const runId =
-    ++voiceRunRef.current
+  const runId = voiceRunRef.current
 
   const sentenceChunks =
     text
@@ -745,16 +748,12 @@ async function speakReplyInChunks(
         splitLongSpeechChunk(chunk)
     )
 
-  for (const chunk of chunks) {
-    if (
-      runId !==
-      voiceRunRef.current
-    ) {
-      return
-    }
+  if (runId !== voiceRunRef.current) return
 
-    await generateVoice(chunk)
-  }
+chunks.forEach((chunk) => {
+  generateVoice(chunk)
+})
+
 }
 
 async function saveProfile() {
@@ -815,6 +814,8 @@ async function sendMessage(voiceText?: string) {
   if (!currentMessage || loading) return
 
   stopVoice()
+
+await unlockMobileAudio()
 
   const {
     data: { user },
@@ -990,7 +991,7 @@ async function transcribeAndSendAudio(audioBlob: Blob) {
 async function startVoiceAsk() {
   setActiveTab("askMACCE")
 
-  unlockMobileAudio()
+  await unlockMobileAudio()
 
   if (!navigator.mediaDevices) {
     alert(
@@ -1515,22 +1516,33 @@ async function startVoiceAsk() {
               />
             </div>            
                         
-            <UpcomingBills />
           </div>
         </div>
       </section>
-      <button
-  onClick={startVoiceAsk}
-  className="fixed bottom-28 right-5 z-50 h-16 w-16 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 shadow-[0_0_35px_rgba(34,211,238,0.45)] flex items-center justify-center hover:scale-110 transition md:hidden"
->
-  <span className="text-2xl">
-  {isTranscribing
-    ? "⏳"
-    : isListening
-      ? "🎙️"
-      : "✨"}
-</span>
-</button>
+      <div className="fixed bottom-28 right-5 z-50 flex flex-col items-center md:hidden">
+  <button
+    onClick={async () => {
+      await unlockMobileAudio()
+      await startVoiceAsk()
+    }}
+    className="h-16 w-16 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 shadow-[0_0_35px_rgba(34,211,238,0.45)] flex items-center justify-center hover:scale-110 transition"
+  >
+    <span className="text-2xl">
+      {isTranscribing
+        ? "⏳"
+        : isListening
+          ? "🎙️"
+          : "✨"}
+    </span>
+  </button>
+
+  {isListening && (
+    <p className="mt-2 text-xs text-cyan-300">
+      Tap to stop
+    </p>
+  )}
+</div>
+    
       <audio
   ref={audioPlayerRef}
   preload="auto"
@@ -2440,3 +2452,4 @@ function ReportCard({ title }: { title: string }) {
     </div>
   )
 }
+

@@ -743,7 +743,7 @@ async function speakReplyInChunks(text: string) {
 
   for (const chunk of chunks) {
     if (runId !== voiceRunRef.current) return
-    await generateVoice(chunk)
+    generateVoice(chunk)
   }
 }
 
@@ -864,22 +864,17 @@ async function sendMessage(voiceText?: string) {
       "I’m here, but I didn’t get a clean response that time."
 
     const aiReply = cleanMacceResponse(rawReply)
+    
+    const voiceText = getVoiceText(aiReply)
+speakReplyInChunks(voiceText)
 
     let typedText = ""
-    let hasStartedSpeaking = false
+  
 
     for (const char of aiReply) {
       typedText += char
 
-      if (
-        !hasStartedSpeaking &&
-        (typedText.length > 40 ||
-          typedText.includes("."))
-      ) {
-        hasStartedSpeaking = true
-        const voiceText = getVoiceText(aiReply)
-speakReplyInChunks(voiceText)
-      }
+      
 
       setChat((prev) => {
         const updated = [...prev]
@@ -893,14 +888,10 @@ speakReplyInChunks(voiceText)
       })
 
       await new Promise((resolve) =>
-        setTimeout(resolve, 10)
+        setTimeout(resolve, 3)
       )
     }
 
-    if (!hasStartedSpeaking) {
-      const voiceText = getVoiceText(aiReply)
-speakReplyInChunks(voiceText)
-    }
 
     const { error: insertError } = await supabase
   .from("chats")

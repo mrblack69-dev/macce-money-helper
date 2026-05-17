@@ -5,21 +5,35 @@ const client = new OpenAI({
 })
 
 export async function POST(req: Request) {
-  const body = await req.json()
+  try {
+    const body = await req.json()
 
-  const mp3 = await client.audio.speech.create({
-    model: "gpt-4o-mini-tts",
-    voice: "cedar",
-    input: body.text,
-  })
+    const rawText = body.text || ""
 
-  const buffer = Buffer.from(
-    await mp3.arrayBuffer()
-  )
+    const spokenText = rawText
+      .replace(/MACCE/gi, "maychee")
+      .replace(/\*\*/g, "")
+      .replace(/\$/g, " dollars ")
 
-  return new Response(buffer, {
-    headers: {
-      "Content-Type": "audio/mpeg",
-    },
-  })
+    const mp3 = await client.audio.speech.create({
+      model: "gpt-4o-mini-tts",
+      voice: "cedar",
+      input: spokenText,
+    })
+
+    const buffer = Buffer.from(await mp3.arrayBuffer())
+
+    return new Response(buffer, {
+      headers: {
+        "Content-Type": "audio/mpeg",
+        "Cache-Control": "no-store",
+      },
+    })
+  } catch (err) {
+    console.error(err)
+
+    return new Response("Voice generation failed", {
+      status: 500,
+    })
+  }
 }

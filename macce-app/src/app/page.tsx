@@ -652,47 +652,32 @@ async function playAudioQueue() {
 
 async function generateVoice(text: string) {
   if (!voiceEnabled) return
-if (!text.trim()) return
+  if (!text.trim()) return
 
-const runId = voiceRunRef.current
-
-if (runId !== voiceRunRef.current) return
-
-try {
-  const voiceRes = await fetch("/api/voice", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ text }),
-  })
+  try {
+    const voiceRes = await fetch("/api/voice", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text }),
+    })
 
     if (!voiceRes.ok) {
-      const errorText =
-        await voiceRes.text()
-
-      console.error(
-        "Voice API failed:",
-        errorText
-      )
-
+      const errorText = await voiceRes.text()
+      console.error("Voice API failed:", errorText)
       return
     }
 
-    const audioBlob =
-      await voiceRes.blob()
+    const audioBlob = await voiceRes.blob()
+    const audioUrl = URL.createObjectURL(audioBlob)
 
-    const audioUrl =
-      URL.createObjectURL(audioBlob)
-
+    // ✅ queue-based playback only
     audioQueue.current.push(audioUrl)
-
     playAudioQueue()
+
   } catch (error) {
-    console.error(
-      "Voice generation failed:",
-      error
-    )
+    console.error("Voice generation failed:", error)
   }
 }
 
@@ -726,34 +711,27 @@ function splitLongSpeechChunk(
   return chunks
 }
 
-async function speakReplyInChunks(
-  text: string
-) {
+async function speakReplyInChunks(text: string) {
   if (!voiceEnabled) return
   if (!text.trim()) return
 
-  const runId = voiceRunRef.current
+  const runId = ++voiceRunRef.current
 
   const sentenceChunks =
     text
       .match(/[^.!?]+[.!?]+|[^.!?]+$/g)
-      ?.map((chunk) =>
-        chunk.trim()
-      )
+      ?.map((chunk) => chunk.trim())
       .filter(Boolean) || [text]
 
-  const chunks =
-    sentenceChunks.flatMap(
-      (chunk) =>
-        splitLongSpeechChunk(chunk)
-    )
+  const chunks = sentenceChunks.flatMap((chunk) =>
+    splitLongSpeechChunk(chunk)
+  )
 
-  if (runId !== voiceRunRef.current) return
+  for (const chunk of chunks) {
+    if (runId !== voiceRunRef.current) return
 
-chunks.forEach((chunk) => {
-  generateVoice(chunk)
-})
-
+    await generateVoice(chunk)
+  }
 }
 
 async function saveProfile() {
@@ -814,8 +792,7 @@ async function sendMessage(voiceText?: string) {
   if (!currentMessage || loading) return
 
   stopVoice()
-
-await unlockMobileAudio()
+  await unlockMobileAudio()
 
   const {
     data: { user },
@@ -831,14 +808,8 @@ await unlockMobileAudio()
 
   setChat((prev) => [
     ...prev,
-    {
-      role: "user",
-      content: currentMessage,
-    },
-    {
-      role: "assistant",
-      content: "",
-    },
+    { role: "user", content: currentMessage },
+    { role: "assistant", content: "" },
   ])
 
   await supabase.from("chats").insert({
@@ -848,8 +819,9 @@ await unlockMobileAudio()
   })
 
   try {
-    const financialResponse =
-      await fetch("/api/financial-chat", {
+    const financialResponse = await fetch(
+      "/api/financial-chat",
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -865,28 +837,35 @@ await unlockMobileAudio()
             incomeRange,
           },
         }),
-      })
+      }
+    )
 
     if (!financialResponse.ok) {
       throw new Error("Chat request failed")
     }
 
-    const data =
-      await financialResponse.json()
+    const data = await financialResponse.json()
 
     const rawReply =
-  data.reply ||
-  "I’m here, but I didn’t get a clean response that time."
+      data.reply ||
+      "I’m here, but I didn’t get a clean response that time."
 
-const aiReply =
-  cleanMacceResponse(rawReply)
-
-    speakReplyInChunks(aiReply)
+    const aiReply = cleanMacceResponse(rawReply)
 
     let typedText = ""
+    let hasStartedSpeaking = false
 
     for (const char of aiReply) {
       typedText += char
+
+      if (
+        !hasStartedSpeaking &&
+        (typedText.length > 40 ||
+          typedText.includes("."))
+      ) {
+        hasStartedSpeaking = true
+        speakReplyInChunks(typedText)
+      }
 
       setChat((prev) => {
         const updated = [...prev]
@@ -904,11 +883,22 @@ const aiReply =
       )
     }
 
-    await supabase.from("chats").insert({
-      user_id: user.id,
-      role: "assistant",
-      content: aiReply,
-    })
+    if (!hasStartedSpeaking) {
+      speakReplyInChunks(typedText)
+    }
+
+    const { error: insertError } = await supabase
+  .from("chats")
+  .insert({
+    user_id: user.id,
+    role: "assistant",
+    content: aiReply,
+  })
+
+if (insertError) {
+  console.error("DB insert failed:", insertError)
+}
+
   } catch (error) {
     console.error(error)
 

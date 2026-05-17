@@ -681,6 +681,8 @@ async function generateVoice(text: string) {
   }
 }
 
+
+
 function splitLongSpeechChunk(
   text: string,
   maxLength = 140
@@ -690,14 +692,10 @@ function splitLongSpeechChunk(
   let current = ""
 
   for (const word of words) {
-    if (
-      (current + " " + word).length >
-      maxLength
-    ) {
+    if ((current + " " + word).length > maxLength) {
       if (current.trim()) {
         chunks.push(current.trim())
       }
-
       current = word
     } else {
       current += " " + word
@@ -711,17 +709,33 @@ function splitLongSpeechChunk(
   return chunks
 }
 
+function getVoiceText(text: string) {
+  const sentences =
+    text.split(/(?<=[.!?])\s+/).filter(Boolean)
+
+  if (sentences.length <= 4) {
+    return text
+  }
+
+  return [
+    sentences[0],
+    sentences[1],
+    "...",
+    sentences[sentences.length - 1],
+  ].join(" ")
+}
+
 async function speakReplyInChunks(text: string) {
   if (!voiceEnabled) return
   if (!text.trim()) return
 
   const runId = ++voiceRunRef.current
 
-  const sentenceChunks =
-    text
-      .match(/[^.!?]+[.!?]+|[^.!?]+$/g)
-      ?.map((chunk) => chunk.trim())
-      .filter(Boolean) || [text]
+  // ✅ FIXED: better sentence splitting
+  const sentenceChunks = text
+    .split(/(?<=[.!?])\s+/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
 
   const chunks = sentenceChunks.flatMap((chunk) =>
     splitLongSpeechChunk(chunk)
@@ -729,7 +743,6 @@ async function speakReplyInChunks(text: string) {
 
   for (const chunk of chunks) {
     if (runId !== voiceRunRef.current) return
-
     await generateVoice(chunk)
   }
 }
@@ -864,7 +877,8 @@ async function sendMessage(voiceText?: string) {
           typedText.includes("."))
       ) {
         hasStartedSpeaking = true
-        speakReplyInChunks(typedText)
+        const voiceText = getVoiceText(aiReply)
+speakReplyInChunks(voiceText)
       }
 
       setChat((prev) => {
@@ -884,7 +898,8 @@ async function sendMessage(voiceText?: string) {
     }
 
     if (!hasStartedSpeaking) {
-      speakReplyInChunks(typedText)
+      const voiceText = getVoiceText(aiReply)
+speakReplyInChunks(voiceText)
     }
 
     const { error: insertError } = await supabase

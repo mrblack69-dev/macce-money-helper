@@ -259,6 +259,7 @@ await loadBills()
 await loadSafeToSpend()
 await loadSubscriptions()
 await loadAlerts()
+
 await fetch("/api/profile", {
   method: "POST",
   headers: {
@@ -268,6 +269,7 @@ await fetch("/api/profile", {
     user_id: user.id,
   }),
 })
+
 await fetch("/api/alerts", {
   method: "POST",
   headers: {
@@ -277,10 +279,10 @@ await fetch("/api/alerts", {
     user_id: user.id,
   }),
 })
-    alert("Bank connected!")
+
+alert("Bank connected!")
   },
 })
-
 
 async function loadTransactions() {
   try {
@@ -318,26 +320,19 @@ async function loadAnalytics() {
 
     if (!user) return
 
-    const res = await fetch(
-      "/api/analytics",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify({
-          user_id: user.id,
-        }),
-      }
-    )
+    const res = await fetch("/api/analytics", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: user.id,
+      }),
+    })
 
     const data = await res.json()
 
-    console.log(
-      "analytics loaded:",
-      data
-    )
+    console.log("analytics loaded:", data)
 
     setAnalytics(data)
   } catch (error) {
@@ -353,30 +348,21 @@ async function loadInsights() {
 
     if (!user) return
 
-    const res = await fetch(
-      "/api/insights",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify({
-          user_id: user.id,
-        }),
-      }
-    )
+    const res = await fetch("/api/insights", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: user.id,
+      }),
+    })
 
     const data = await res.json()
 
-    console.log(
-      "insights loaded:",
-      data
-    )
+    console.log("insights loaded:", data)
 
-    setInsights(
-      data.insights || []
-    )
+    setInsights(data.insights || [])
   } catch (error) {
     console.error(error)
   }
@@ -390,19 +376,15 @@ async function loadBills() {
 
     if (!user) return
 
-    const res = await fetch(
-      "/api/bills",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify({
-          user_id: user.id,
-        }),
-      }
-    )
+    const res = await fetch("/api/bills", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: user.id,
+      }),
+    })
 
     const data = await res.json()
 
@@ -420,25 +402,19 @@ async function loadSubscriptions() {
 
     if (!user) return
 
-    const res = await fetch(
-      "/api/subscriptions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify({
-          user_id: user.id,
-        }),
-      }
-    )
+    const res = await fetch("/api/subscriptions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: user.id,
+      }),
+    })
 
     const data = await res.json()
 
-    setSubscriptions(
-      data.subscriptions || []
-    )
+    setSubscriptions(data.subscriptions || [])
   } catch (error) {
     console.error(error)
   }
@@ -452,19 +428,15 @@ async function loadSafeToSpend() {
 
     if (!user) return
 
-    const res = await fetch(
-      "/api/safe-to-spend",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify({
-          user_id: user.id,
-        }),
-      }
-    )
+    const res = await fetch("/api/safe-to-spend", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: user.id,
+      }),
+    })
 
     const data = await res.json()
 
@@ -482,25 +454,69 @@ async function loadAlerts() {
 
     if (!user) return
 
-    const res = await fetch(
-      "/api/alerts",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify({
-          user_id: user.id,
-        }),
-      }
-    )
+    const res = await fetch("/api/alerts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: user.id,
+      }),
+    })
 
     const data = await res.json()
 
     setAlerts(data.alerts || [])
   } catch (error) {
     console.error(error)
+  }
+}
+
+async function saveProfile() {
+  console.log("saveProfile running")
+
+  try {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    console.log("user:", user)
+    console.log("userError:", userError)
+
+    if (!user) {
+      alert("No logged in user found")
+      return
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .upsert({
+        id: user.id,
+        first_name: firstName,
+        last_name: lastName,
+        phone,
+        main_goal: mainGoal,
+        income_range: incomeRange,
+      })
+      .select()
+
+    console.log("profile save data:", data)
+    console.log("profile save error:", error)
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    setProfileSaved(true)
+
+    setTimeout(() => {
+      setProfileSaved(false)
+    }, 2500)
+  } catch (error) {
+    console.error("Profile save failed:", error)
+    alert("Profile save failed. Try again.")
   }
 }
 
@@ -549,7 +565,7 @@ async function unlockMobileAudio() {
   }
 }
 
-  function stopVoice() {
+function stopVoice() {
   voiceRunRef.current += 1
 
   audioQueue.current.forEach((url) => {
@@ -593,8 +609,7 @@ async function playAudioQueue() {
     return
   }
 
-  const audioUrl =
-    audioQueue.current.shift()
+  const audioUrl = audioQueue.current.shift()
 
   if (!audioUrl) return
 
@@ -672,16 +687,12 @@ async function generateVoice(text: string) {
     const audioBlob = await voiceRes.blob()
     const audioUrl = URL.createObjectURL(audioBlob)
 
-    // ✅ queue-based playback only
     audioQueue.current.push(audioUrl)
     playAudioQueue()
-
   } catch (error) {
     console.error("Voice generation failed:", error)
   }
 }
-
-
 
 function splitLongSpeechChunk(
   text: string,
@@ -696,6 +707,7 @@ function splitLongSpeechChunk(
       if (current.trim()) {
         chunks.push(current.trim())
       }
+
       current = word
     } else {
       current += " " + word
@@ -709,9 +721,15 @@ function splitLongSpeechChunk(
   return chunks
 }
 
+function splitSentences(text: string) {
+  return text
+    .split(/(?<=[.!?])\s+(?=[A-Z0-9$])/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean)
+}
+
 function getVoiceText(text: string) {
-  const sentences =
-    text.split(/(?<=[.!?])\s+/).filter(Boolean)
+  const sentences = splitSentences(text)
 
   if (sentences.length <= 4) {
     return text
@@ -720,74 +738,38 @@ function getVoiceText(text: string) {
   return [
     sentences[0],
     sentences[1],
-    "...",
     sentences[sentences.length - 1],
   ].join(" ")
 }
 
-async function speakReplyInChunks(text: string) {
+async function speakReplyInChunks(
+  text: string,
+  skipFirst = false
+) {
   if (!voiceEnabled) return
   if (!text.trim()) return
 
   const runId = ++voiceRunRef.current
 
-  // ✅ FIXED: better sentence splitting
-  const sentenceChunks = text
-    .split(/(?<=[.!?])\s+/)
-    .map((chunk) => chunk.trim())
-    .filter(Boolean)
+  const sentenceChunks = splitSentences(text)
 
   const chunks = sentenceChunks.flatMap((chunk) =>
     splitLongSpeechChunk(chunk)
   )
 
-  for (const chunk of chunks) {
+  for (let index = 0; index < chunks.length; index++) {
     if (runId !== voiceRunRef.current) return
-    generateVoice(chunk)
+
+    if (skipFirst && index === 0) {
+      continue
+    }
+
+    generateVoice(chunks[index])
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, 120)
+    )
   }
-}
-
-async function saveProfile() {
-  console.log("saveProfile running")
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  console.log("user:", user)
-  console.log("userError:", userError)
-
-  if (!user) {
-    alert("No logged in user found")
-    return
-  }
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .upsert({
-      id: user.id,
-      first_name: firstName,
-      last_name: lastName,
-      phone,
-      main_goal: mainGoal,
-      income_range: incomeRange,
-    })
-    .select()
-
-  console.log("profile save data:", data)
-  console.log("profile save error:", error)
-
-  if (error) {
-    alert(error.message)
-    return
-  }
-
-  setProfileSaved(true)
-
-  setTimeout(() => {
-    setProfileSaved(false)
-  }, 2500)
 }
 
 function cleanMacceResponse(text: string) {
@@ -795,6 +777,8 @@ function cleanMacceResponse(text: string) {
     .replace(/\*\*(.*?)\*\*/g, "$1")
     .replace(/\*(.*?)\*/g, "$1")
     .replace(/#{1,6}\s/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/\s([,.!?])/g, "$1")
     .trim()
 }
 
@@ -821,8 +805,14 @@ async function sendMessage(voiceText?: string) {
 
   setChat((prev) => [
     ...prev,
-    { role: "user", content: currentMessage },
-    { role: "assistant", content: "" },
+    {
+      role: "user",
+      content: currentMessage,
+    },
+    {
+      role: "assistant",
+      content: "",
+    },
   ])
 
   await supabase.from("chats").insert({
@@ -864,47 +854,40 @@ async function sendMessage(voiceText?: string) {
       "I’m here, but I didn’t get a clean response that time."
 
     const aiReply = cleanMacceResponse(rawReply)
-    
-    const voiceText = getVoiceText(aiReply)
-speakReplyInChunks(voiceText)
+    const voiceTextFinal = getVoiceText(aiReply)
+    const voiceChunks = splitSentences(voiceTextFinal)
 
-    let typedText = ""
-  
+    const firstSentence = voiceChunks[0]
 
-    for (const char of aiReply) {
-      typedText += char
-
-      
-
-      setChat((prev) => {
-        const updated = [...prev]
-
-        updated[updated.length - 1] = {
-          role: "assistant",
-          content: typedText,
-        }
-
-        return updated
-      })
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 3)
-      )
+    if (firstSentence) {
+      generateVoice(firstSentence)
+      speakReplyInChunks(voiceTextFinal, true)
+    } else {
+      speakReplyInChunks(voiceTextFinal)
     }
 
+    setChat((prev) => {
+      const updated = [...prev]
+
+      updated[updated.length - 1] = {
+        role: "assistant",
+        content: aiReply,
+      }
+
+      return updated
+    })
 
     const { error: insertError } = await supabase
-  .from("chats")
-  .insert({
-    user_id: user.id,
-    role: "assistant",
-    content: aiReply,
-  })
+      .from("chats")
+      .insert({
+        user_id: user.id,
+        role: "assistant",
+        content: aiReply,
+      })
 
-if (insertError) {
-  console.error("DB insert failed:", insertError)
-}
-
+    if (insertError) {
+      console.error("DB insert failed:", insertError)
+    }
   } catch (error) {
     console.error(error)
 
@@ -1079,20 +1062,419 @@ async function startVoiceAsk() {
     )
   }
 }
-  if (!loggedIn) {
-    return (
-      <main className={`min-h-screen ${getThemeBackground(theme)} text-white flex items-center justify-center p-6 overflow-hidden`}>
-        <div className="absolute w-[700px] h-[700px] bg-cyan-400/10 blur-[130px] rounded-full"></div>
 
-        <div className="relative w-full max-w-md bg-white/5 border border-cyan-400/20 rounded-3xl p-8 backdrop-blur-xl shadow-[0_0_50px_rgba(34,211,238,0.08)] transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
-          <div className="flex flex-col items-center mb-8">
-            <motion.img
-              src="/macce.png"
-              alt="MACCE"
-              className="w-48 mb-6 drop-shadow-[0_0_35px_rgba(34,211,238,0.45)]"
+if (!loggedIn) {
+  return (
+    <main
+      className={`min-h-screen ${getThemeBackground(
+        theme
+      )} text-white flex items-center justify-center p-6 overflow-hidden`}
+    >
+      <div className="absolute w-[700px] h-[700px] bg-cyan-400/10 blur-[130px] rounded-full" />
+
+      <div className="relative w-full max-w-md bg-white/5 border border-cyan-400/20 rounded-3xl p-8 backdrop-blur-xl shadow-[0_0_50px_rgba(34,211,238,0.08)] transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
+        <div className="flex flex-col items-center mb-8">
+          <motion.img
+            src="/macce.png"
+            alt="MACCE"
+            className="w-48 mb-6 drop-shadow-[0_0_35px_rgba(34,211,238,0.45)]"
+            animate={{
+              y: [0, -14, 0],
+              scale: [1, 1.02, 1],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+
+          <h1 className="text-5xl font-bold text-cyan-300">
+            MACCE
+          </h1>
+
+          <p className="text-gray-400 mt-3 text-center">
+            Your AI companion for money, goals, and life
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email or username"
+            value={email}
+            onChange={(e) =>
+              setEmail(e.target.value)
+            }
+            className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) =>
+              setPassword(e.target.value)
+            }
+            className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
+          />
+
+          <button
+            onClick={async () => {
+              if (
+                !email.trim() ||
+                !password.trim()
+              ) {
+                alert("Enter email and password")
+                return
+              }
+
+              if (signupMode) {
+                const { data, error } =
+                  await supabase.auth.signUp({
+                    email,
+                    password,
+                  })
+
+                console.log(data)
+                console.log(error)
+
+                if (error) {
+                  alert(error.message)
+                  return
+                }
+
+                alert(
+                  "Account created. Now login."
+                )
+                setSignupMode(false)
+              } else {
+                const { data, error } =
+                  await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                  })
+
+                console.log(data)
+                console.log(error)
+
+                if (error) {
+                  alert(error.message)
+                  return
+                }
+
+                if (!data.session) {
+                  alert("No session created")
+                  return
+                }
+
+                setLoggedIn(true)
+              }
+            }}
+            className="w-full min-h-[44px] bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl px-5 py-3 font-semibold hover:scale-[1.02] transition"
+          >
+            {signupMode
+              ? "Create Account"
+              : "Login"}
+          </button>
+
+          <button
+            onClick={() =>
+              setSignupMode(!signupMode)
+            }
+            className="min-h-[44px] text-sm text-gray-400 w-full text-center hover:text-cyan-300 transition"
+          >
+            {signupMode
+              ? "Already have an account? Login"
+              : "Need an account? Create one"}
+          </button>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+return (
+  <main
+    className={`min-h-screen ${getThemeBackground(
+      theme
+    )} text-white flex flex-col lg:flex-row overflow-hidden`}
+  >
+    <aside className="hidden lg:flex lg:w-72 bg-[#07111f]/90 border-r border-cyan-400/10 p-6 flex-col justify-between">
+      <div>
+        <h1 className="text-4xl font-bold text-cyan-300 mb-2">
+          MACCE
+        </h1>
+
+        <p className="text-gray-400 mb-10">
+          Your AI companion for money, goals, and life
+        </p>
+
+        <nav className="space-y-4">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`w-full min-h-[44px] text-left rounded-2xl p-4 transition ${
+                activeTab === tab
+                  ? "bg-cyan-400/15 border border-cyan-300/30 text-cyan-200"
+                  : "bg-white/5 hover:bg-white/10 text-gray-300"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      <div className="space-y-3 mt-6">
+        <div className="bg-white/5 border border-cyan-300/20 rounded-3xl p-5 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
+          <p className="text-cyan-300 font-semibold">
+            MACCE is online
+          </p>
+
+          <p className="text-gray-400 text-sm mt-2">
+            Always here. Always learning.
+          </p>
+        </div>
+
+        <button
+          onClick={() => {
+            stopVoice()
+            setLoggedIn(false)
+          }}
+          className="w-full min-h-[44px] bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition text-left"
+        >
+          Logout
+        </button>
+      </div>
+    </aside>
+
+    <section className="flex-1 p-4 lg:p-8 pb-24 relative overflow-y-auto">
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-400/10 blur-[120px] rounded-full" />
+      <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] bg-purple-500/10 blur-[120px] rounded-full" />
+
+      <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start mb-8 gap-6">
+        <div>
+          <h2 className="text-3xl lg:text-5xl font-bold mb-3">
+            {activeTab}
+          </h2>
+
+          <p className="text-gray-400 text-lg">
+            {activeTab === "Dashboard"
+              ? firstName
+                ? `Here’s your money, goals, and life overview, ${firstName}.`
+                : "Here’s your money, goals, and life overview."
+              : `Manage your ${activeTab.toLowerCase()} with MACCE.`}
+          </p>
+        </div>
+      </div>
+
+      <div className="relative z-10 grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <div className="xl:col-span-8 space-y-6">
+          {activeTab === "Dashboard" && (
+            <DashboardContent
+              analytics={analytics}
+              transactions={transactions}
+              insights={insights}
+              bills={bills}
+              safeToSpend={safeToSpend}
+              subscriptions={subscriptions}
+              alerts={alerts}
+            />
+          )}
+
+          {activeTab === "Transactions" && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+                <Card
+                  title="Net Cash Flow"
+                  value={`$${Number(
+                    analytics?.net || 0
+                  ).toFixed(2)}`}
+                  note="Live from linked transactions"
+                  good={(analytics?.net || 0) >= 0}
+                  bad={(analytics?.net || 0) < 0}
+                />
+
+                <Card
+                  title="Income"
+                  value={`$${Number(
+                    analytics?.income || 0
+                  ).toFixed(2)}`}
+                  note="Synced from Plaid"
+                  good
+                />
+
+                <Card
+                  title="Expenses"
+                  value={`$${Number(
+                    analytics?.expenses || 0
+                  ).toFixed(2)}`}
+                  note="Synced from Plaid"
+                  bad
+                />
+
+                <Card
+                  title="Savings Rate"
+                  value={`${Number(
+                    analytics?.savingsRate || 0
+                  ).toFixed(0)}%`}
+                  note="Income minus expenses"
+                  good={
+                    (analytics?.savingsRate || 0) >= 20
+                  }
+                  bad={
+                    (analytics?.savingsRate || 0) < 0
+                  }
+                />
+              </div>
+
+              <div className="bg-white/5 border border-pink-400/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
+                <h3 className="text-2xl font-semibold mb-5">
+                  Subscriptions
+                </h3>
+
+                <div className="space-y-3">
+                  {subscriptions.length > 0 ? (
+                    [...subscriptions]
+                      .sort(
+                        (a, b) =>
+                          b.average_amount -
+                          a.average_amount
+                      )
+                      .slice(0, 5)
+                      .map((subscription, index) => (
+                        <div
+                          key={index}
+                          className="bg-pink-400/10 border border-pink-400/20 rounded-2xl p-4 flex justify-between items-center"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">
+                              {
+                                subscription.merchant_name
+                              }
+                            </p>
+
+                            <p className="text-sm text-white/60">
+                              ~ every 30 days
+                            </p>
+                          </div>
+
+                          <p className="text-pink-300 font-semibold">
+                            $
+                            {Number(
+                              subscription.average_amount
+                            ).toFixed(2)}
+                          </p>
+                        </div>
+                      ))
+                  ) : (
+                    <div className="bg-white/5 rounded-2xl p-4 text-white/60">
+                      No subscriptions detected yet
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <TransactionsContent
+                transactions={transactions}
+              />
+            </>
+          )}
+
+          {activeTab === "Budget" && (
+            <BudgetContent />
+          )}
+
+          {activeTab === "Goals" && (
+            <GoalsContent />
+          )}
+
+          {activeTab === "AI Insights" && (
+            <InsightsContent />
+          )}
+
+          {activeTab === "Reports" && (
+            <ReportsContent />
+          )}
+
+          {activeTab === "Alerts" && (
+            <div className="space-y-6">
+              <div className="space-y-3">
+                {alerts.length > 0 &&
+                  alerts.map((alert, index) => (
+                    <div
+                      key={index}
+                      className="bg-yellow-400 text-black rounded-2xl p-4 shadow-lg"
+                    >
+                      <p className="font-semibold">
+                        {alert.title}
+                      </p>
+
+                      <p className="text-sm text-black/80 mt-1">
+                        {alert.message}
+                      </p>
+                    </div>
+                  ))}
+              </div>
+
+              <UpcomingBills />
+              <SpendingBreakdownCard
+                analytics={analytics}
+              />
+            </div>
+          )}
+
+          {activeTab === "askMACCE" && (
+            <AskMacceContent
+              chat={chat}
+              loading={loading}
+              message={message}
+              setMessage={setMessage}
+              sendMessage={sendMessage}
+              voiceEnabled={voiceEnabled}
+              setVoiceEnabled={setVoiceEnabled}
+              stopVoice={stopVoice}
+              chatEndRef={chatEndRef}
+              chatBoxRef={chatBoxRef}
+            />
+          )}
+
+          {activeTab === "Profile" && (
+            <SettingsContent
+              firstName={firstName}
+              setFirstName={setFirstName}
+              lastName={lastName}
+              setLastName={setLastName}
+              phone={phone}
+              setPhone={setPhone}
+              mainGoal={mainGoal}
+              setMainGoal={setMainGoal}
+              incomeRange={incomeRange}
+              setIncomeRange={setIncomeRange}
+              saveProfile={saveProfile}
+              profileSaved={profileSaved}
+              voiceEnabled={voiceEnabled}
+              setVoiceEnabled={setVoiceEnabled}
+              stopVoice={stopVoice}
+              theme={theme}
+              setTheme={setTheme}
+              personality={personality}
+              setPersonality={setPersonality}
+              openPlaid={() => open()}
+plaidReady={ready}
+            />
+          )}
+        </div>
+
+        <div className="xl:col-span-4 space-y-6">
+          <div className="relative min-h-[360px] lg:min-h-[520px] flex items-center justify-center">
+            <motion.div
+              className="absolute w-[260px] h-[260px] lg:w-[420px] lg:h-[420px] bg-cyan-400/20 blur-[80px] rounded-full"
               animate={{
-                y: [0, -14, 0],
-                scale: [1, 1.02, 1],
+                opacity: [0.25, 0.45, 0.25],
+                scale: [1, 1.08, 1],
               }}
               transition={{
                 duration: 4,
@@ -1101,455 +1483,74 @@ async function startVoiceAsk() {
               }}
             />
 
-            <h1 className="text-5xl font-bold text-cyan-300">MACCE</h1>
-
-            <p className="text-gray-400 mt-3 text-center">
-              Your AI companion for money, goals, and life
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <input
-              type="email"
-              placeholder="Email or username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
+            <motion.div
+              className="absolute bottom-6 w-52 lg:w-72 h-10 rounded-full border border-cyan-300/40 bg-cyan-400/10 blur-sm"
+              animate={{
+                scale: [1, 1.08, 1],
+                opacity: [0.45, 0.75, 0.45],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
             />
 
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
+            <motion.img
+              src="/macce.png"
+              alt="MACCE"
+              className="relative w-[260px] sm:w-[320px] lg:w-[430px] drop-shadow-[0_0_45px_rgba(34,211,238,0.45)]"
+              animate={{
+                y: [0, -28, 0],
+                scale: [1, 1.025, 1],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
             />
-
-            <button
-              onClick={async () => {
-  if (!email.trim() || !password.trim()) {
-    alert("Enter email and password")
-    return
-  }
-
-  if (signupMode) {
-    const { data, error } =
-      await supabase.auth.signUp({
-        email,
-        password,
-      })
-
-    console.log(data)
-    console.log(error)
-
-    if (error) {
-      alert(error.message)
-      return
-    }
-
-    alert("Account created. Now login.")
-    setSignupMode(false)
-  } else {
-    const { data, error } =
-      await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-    console.log(data)
-    console.log(error)
-
-    if (error) {
-      alert(error.message)
-      return
-    }
-
-    if (!data.session) {
-      alert("No session created")
-      return
-    }
-
-    setLoggedIn(true)
-  }
-}}
-            >
-              {signupMode ? "Create Account" : "Login"}
-            </button>
-
-            <button
-              onClick={() => setSignupMode(!signupMode)}
-              className="min-h-[44px] text-sm text-gray-400 w-full text-center hover:text-cyan-300 transition"
-            >
-              {signupMode
-                ? "Already have an account? Login"
-                : "Need an account? Create one"}
-            </button>
           </div>
         </div>
-      </main>
-    )
-  }
-
-  return (
-    <main className={`min-h-screen ${getThemeBackground(theme)} text-white flex flex-col lg:flex-row overflow-hidden`}>
-      <aside className="hidden lg:flex lg:w-72 bg-[#07111f]/90 border-r border-cyan-400/10 p-6 flex flex-col justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-cyan-300 mb-2">MACCE</h1>
-
-          <p className="text-gray-400 mb-10">
-            Your AI companion for money, goals, and life
-          </p>
-
-          <nav className="space-y-4">
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`w-full min-h-[44px] text-left rounded-2xl p-4 transition ${
-                  activeTab === tab
-                    ? "bg-cyan-400/15 border border-cyan-300/30 text-cyan-200"
-                    : "bg-white/5 hover:bg-white/10 text-gray-300"
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <div className="space-y-3 mt-6">
-          <div className="bg-white/5 border border-cyan-300/20 rounded-3xl p-5 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
-            <p className="text-cyan-300 font-semibold">MACCE is online</p>
-            <p className="text-gray-400 text-sm mt-2">
-              Always here. Always learning.
-            </p>
-          </div>
-
-          <button
-            onClick={() => {
-              stopVoice()
-              setLoggedIn(false)
-            }}
-            className="w-full min-h-[44px] bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition text-left"
-          >
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      <section className="flex-1 p-4 lg:p-8 pb-24 relative overflow-y-auto">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-400/10 blur-[120px] rounded-full"></div>
-        <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] bg-purple-500/10 blur-[120px] rounded-full"></div>
-
-        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start mb-8 gap-6">
-          <div>
-            <h2 className="text-3xl lg:text-5xl font-bold mb-3">
-              {activeTab}
-            </h2>
-
-            <p className="text-gray-400 text-lg">
-  {activeTab === "Dashboard"
-    ? firstName
-      ? `Here’s your money, goals, and life overview, ${firstName}.`
-      : "Here’s your money, goals, and life overview."
-    : `Manage your ${activeTab.toLowerCase()} with MACCE.`}
-</p>
-          </div>
-
-          <div className="flex gap-4 text-gray-300">
-          
-
-          
-          </div>
-        </div>
-
-        <div className="relative z-10 grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <div className="xl:col-span-8 space-y-6">
-            {activeTab === "Dashboard" && (
-  <DashboardContent
-    analytics={analytics}
-    transactions={transactions}
-    insights={insights}
-    bills={bills}
-    safeToSpend={safeToSpend}
-    subscriptions={subscriptions}
-    alerts={alerts}
-  />
-)}
-
-{activeTab === "Transactions" && (
-  <>
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-      <Card
-        title="Net Cash Flow"
-        value={`$${Number(
-          analytics?.net || 0
-        ).toFixed(2)}`}
-        note="Live from linked transactions"
-        good={(analytics?.net || 0) >= 0}
-        bad={(analytics?.net || 0) < 0}
-      />
-
-      <Card
-        title="Income"
-        value={`$${Number(
-          analytics?.income || 0
-        ).toFixed(2)}`}
-        note="Synced from Plaid"
-        good
-      />
-
-      <Card
-        title="Expenses"
-        value={`$${Number(
-          analytics?.expenses || 0
-        ).toFixed(2)}`}
-        note="Synced from Plaid"
-        bad
-      />
-
-      <Card
-        title="Savings Rate"
-        value={`${Number(
-          analytics?.savingsRate || 0
-        ).toFixed(0)}%`}
-        note="Income minus expenses"
-        good={
-          (analytics?.savingsRate || 0) >= 20
-        }
-        bad={
-          (analytics?.savingsRate || 0) < 0
-        }
-      />
-    </div>
-
-    <div className="bg-white/5 border border-pink-400/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
-      <h3 className="text-2xl font-semibold mb-5">
-        Subscriptions
-      </h3>
-
-      <div className="space-y-3">
-        {subscriptions.length > 0 ? (
-          subscriptions
-            .sort(
-              (a, b) =>
-                b.average_amount -
-                a.average_amount
-            )
-            .slice(0, 5)
-            .map(
-              (
-                subscription,
-                index
-              ) => (
-                <div
-                  key={index}
-                  className="bg-pink-400/10 border border-pink-400/20 rounded-2xl p-4 flex justify-between items-center"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">
-                      {
-                        subscription.merchant_name
-                      }
-                    </p>
-
-                    <p className="text-sm text-white/60">
-                      ~ every 30 days
-                    </p>
-                  </div>
-
-                  <p className="text-pink-300 font-semibold">
-                    $
-                    {Number(
-                      subscription.average_amount
-                    ).toFixed(2)}
-                  </p>
-                </div>
-              )
-            )
-        ) : (
-          <div className="bg-white/5 rounded-2xl p-4 text-white/60">
-            No subscriptions detected yet
-          </div>
-        )}
       </div>
+    </section>
+
+    <div className="fixed bottom-28 right-5 z-50 flex flex-col items-center md:hidden">
+      <button
+        onClick={async () => {
+          await unlockMobileAudio()
+          await startVoiceAsk()
+        }}
+        className="h-16 w-16 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 shadow-[0_0_35px_rgba(34,211,238,0.45)] flex items-center justify-center hover:scale-110 transition"
+      >
+        <span className="text-2xl">
+          {isTranscribing
+            ? "⏳"
+            : isListening
+              ? "🎙️"
+              : "✨"}
+        </span>
+      </button>
+
+      {isListening && (
+        <p className="mt-2 text-xs text-cyan-300">
+          Tap to stop
+        </p>
+      )}
     </div>
 
-    <TransactionsContent
-      transactions={transactions}
+    <audio
+      ref={audioPlayerRef}
+      preload="auto"
+      style={{ display: "none" }}
     />
-  </>
-)}
 
-{activeTab === "Budget" && (
-  <BudgetContent />
-)}
-
-{activeTab === "Goals" && (
-  <GoalsContent />
-)}
-
-{activeTab === "AI Insights" && (
-  <InsightsContent />
-)}
-
-{activeTab === "Reports" && (
-  <ReportsContent />
-)}
-
-{activeTab === "Alerts" && (
-  <div className="space-y-6">
-    <div className="space-y-3">
-      {alerts.length > 0 &&
-        alerts.map((alert, index) => (
-          <div
-            key={index}
-            className="bg-yellow-400 text-black rounded-2xl p-4 shadow-lg"
-          >
-            <p className="font-semibold">
-              {alert.title}
-            </p>
-
-            <p className="text-sm text-black/80 mt-1">
-              {alert.message}
-            </p>
-          </div>
-        ))}
-    </div>
-
-    <UpcomingBills />
-
-    <SpendingBreakdownCard
-      analytics={analytics}
+    <MobileNav
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
     />
-  </div>
-)}
-
-{activeTab === "askMACCE" && (
-  <AskMacceContent
-    chat={chat}
-    loading={loading}
-    message={message}
-    setMessage={setMessage}
-    sendMessage={sendMessage}
-    voiceEnabled={voiceEnabled}
-    setVoiceEnabled={setVoiceEnabled}
-    stopVoice={stopVoice}
-    chatEndRef={chatEndRef}
-    chatBoxRef={chatBoxRef}
-  />
-)}
-
-{activeTab === "Profile" && (
-  <SettingsContent
-    firstName={firstName}
-    setFirstName={setFirstName}
-    lastName={lastName}
-    setLastName={setLastName}
-    phone={phone}
-    setPhone={setPhone}
-    mainGoal={mainGoal}
-    setMainGoal={setMainGoal}
-    incomeRange={incomeRange}
-    setIncomeRange={setIncomeRange}
-    saveProfile={saveProfile}
-    profileSaved={profileSaved}
-    voiceEnabled={voiceEnabled}
-    setVoiceEnabled={setVoiceEnabled}
-    stopVoice={stopVoice}
-    theme={theme}
-    setTheme={setTheme}
-    personality={personality}
-    setPersonality={setPersonality}
-    openPlaid={open}
-    plaidReady={ready}
-  />
-)}
-
-          </div>
-
-          <div className="xl:col-span-4 space-y-6">
-            <div className="relative min-h-[360px] lg:min-h-[520px] flex items-center justify-center">
-              <motion.div
-                className="absolute w-[260px] h-[260px] lg:w-[420px] lg:h-[420px] bg-cyan-400/20 blur-[80px] rounded-full"
-                animate={{
-                  opacity: [0.25, 0.45, 0.25],
-                  scale: [1, 1.08, 1],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-
-              <motion.div
-                className="absolute bottom-6 w-52 lg:w-72 h-10 rounded-full border border-cyan-300/40 bg-cyan-400/10 blur-sm"
-                animate={{
-                  scale: [1, 1.08, 1],
-                  opacity: [0.45, 0.75, 0.45],
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-
-              <motion.img
-                src="/macce.png"
-                alt="MACCE"
-                className="relative w-[260px] sm:w-[320px] lg:w-[430px] drop-shadow-[0_0_45px_rgba(34,211,238,0.45)]"
-                animate={{
-                  y: [0, -28, 0],
-                  scale: [1, 1.025, 1],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-            </div>            
-                        
-          </div>
-        </div>
-      </section>
-      <div className="fixed bottom-28 right-5 z-50 flex flex-col items-center md:hidden">
-  <button
-    onClick={async () => {
-      await unlockMobileAudio()
-      await startVoiceAsk()
-    }}
-    className="h-16 w-16 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 shadow-[0_0_35px_rgba(34,211,238,0.45)] flex items-center justify-center hover:scale-110 transition"
-  >
-    <span className="text-2xl">
-      {isTranscribing
-        ? "⏳"
-        : isListening
-          ? "🎙️"
-          : "✨"}
-    </span>
-  </button>
-
-  {isListening && (
-    <p className="mt-2 text-xs text-cyan-300">
-      Tap to stop
-    </p>
-  )}
-</div>
-    
-      <audio
-  ref={audioPlayerRef}
-  preload="auto"
-  style={{ display: "none" }}
-/>
-      <MobileNav
-  activeTab={activeTab}
-  setActiveTab={setActiveTab}
-/>
-    </main>
-  )
+  </main>
+)
 }
 
 function getThemeBackground(theme: string) {
@@ -1557,6 +1558,17 @@ function getThemeBackground(theme: string) {
   if (theme === "Midnight") return "bg-[#020617]"
   if (theme === "Purple") return "bg-[#12051f]"
   return "bg-[#050b16]"
+}
+
+function formatCategory(value?: string | null) {
+  if (!value) return "Other"
+
+  return value
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c: string) =>
+      c.toUpperCase()
+    )
 }
 
 function DashboardContent({
@@ -1569,136 +1581,102 @@ function DashboardContent({
   analytics: any
   transactions: TransactionItem[]
   insights: string[]
-  bills: BillItem[]
+  bills?: BillItem[]
   safeToSpend: any
-  subscriptions: SubscriptionItem[]
+  subscriptions?: SubscriptionItem[]
   alerts: any[]
 }) {
   const safeAmount =
-  Number(safeToSpend?.safeToSpend || 0)
-  const income = analytics?.income || 0
-  const expenses = analytics?.expenses || 0
-  const net = analytics?.net || 0
-  const savingsRate =
-    income > 0
-      ? Math.round((net / income) * 100)
-      : 0
+    Number(safeToSpend?.safeToSpend || 0)
 
   return (
     <>
-      
-
       <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-300/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
-  <h3 className="text-2xl font-semibold mb-3">
-    Safe to Spend
-  </h3>
+        <h3 className="text-2xl font-semibold mb-3">
+          Safe to Spend
+        </h3>
 
-  <p className="text-4xl lg:text-5xl font-bold text-cyan-300 mb-3">
-    $
-    {safeAmount.toFixed(2)}
-  </p>
+        <p className="text-4xl lg:text-5xl font-bold text-cyan-300 mb-3">
+          ${safeAmount.toFixed(2)}
+        </p>
 
-  <p className="text-white/60">
-    After income, spending, and predicted upcoming bills.
-  </p>
-</div>
-
-
-<div className="space-y-3 mt-6">
-  {alerts.length > 0 &&
-    alerts.slice(0, 3).map(
-      (alert, index) => (
-        <div
-          key={index}
-          className="bg-yellow-400 text-black rounded-2xl p-4 shadow-lg"
-        >
-          <p className="font-semibold text-black">
-            {alert.title}
-          </p>
-
-          <p className="text-sm text-black/80 mt-1">
-            {alert.message}
-          </p>
-        </div>
-      )
-    )}
-</div>
-
-
-
-      
-
-<div className="bg-white/5 border border-cyan-400/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
-  <h3 className="text-2xl font-semibold mb-5">
-    MACCE Insights
-  </h3>
-
-  <div className="space-y-3">
-    {insights.length > 0 ? (
-      insights.map(
-        (insight, index) => (
-          <div
-            key={index}
-            className="bg-cyan-400/10 border border-cyan-400/20 rounded-2xl p-4"
-          >
-            <p className="text-cyan-100">
-              {insight}
-            </p>
-          </div>
-        )
-      )
-    ) : (
-      <div className="bg-white/5 rounded-2xl p-4 text-white/60">
-        No insights yet
+        <p className="text-white/60">
+          After income, spending, and predicted upcoming bills.
+        </p>
       </div>
-    )}
-  </div>
-</div>
 
-<div className="bg-white/5 border border-white/10 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
-  <h3 className="text-2xl font-semibold mb-4">
-    Spending Categories
-  </h3>
+      <div className="space-y-3 mt-6">
+        {alerts.length > 0 &&
+          alerts.slice(0, 3).map((alert, index) => (
+            <div
+              key={index}
+              className="bg-yellow-400 text-black rounded-2xl p-4 shadow-lg"
+            >
+              <p className="font-semibold text-black">
+                {alert.title}
+              </p>
 
-  <div className="space-y-3">
-    {analytics?.categories &&
-      Object.entries(
-        analytics.categories
-      )
-        .sort(
-          (a: any, b: any) =>
-            b[1] - a[1]
-        )
-        .slice(0, 5)
-        .map((entry: any) => (
-          <div
-            key={entry[0]
-  .replace(/_/g, " ")
-  .toLowerCase()
-  .replace(/\b\w/g, (c: string) =>
-    c.toUpperCase()
-  )}
-            className="flex justify-between items-center bg-white/5 rounded-2xl p-4 min-w-0"
-          >
-            <p className="font-medium truncate">
-              {entry[0]
-  .replace(/_/g, " ")
-  .toLowerCase()
-  .replace(/\b\w/g, (c: string) =>
-    c.toUpperCase()
-  )}
-            </p>
+              <p className="text-sm text-black/80 mt-1">
+                {alert.message}
+              </p>
+            </div>
+          ))}
+      </div>
 
-            <p className="text-red-400 font-semibold">
-              ${entry[1].toFixed(2)}
-            </p>
-          </div>
-        ))}
-  </div>
-</div>
-<GoalsMiniCard />
+      <div className="bg-white/5 border border-cyan-400/20 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
+        <h3 className="text-2xl font-semibold mb-5">
+          MACCE Insights
+        </h3>
 
-      
+        <div className="space-y-3">
+          {insights.length > 0 ? (
+            insights.map((insight, index) => (
+              <div
+                key={index}
+                className="bg-cyan-400/10 border border-cyan-400/20 rounded-2xl p-4"
+              >
+                <p className="text-cyan-100">
+                  {insight}
+                </p>
+              </div>
+            ))
+          ) : (
+            <div className="bg-white/5 rounded-2xl p-4 text-white/60">
+              No insights yet
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white/5 border border-white/10 rounded-3xl p-6 mt-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
+        <h3 className="text-2xl font-semibold mb-4">
+          Spending Categories
+        </h3>
+
+        <div className="space-y-3">
+          {analytics?.categories &&
+            Object.entries(analytics.categories)
+              .sort(
+                (a: any, b: any) =>
+                  Number(b[1]) - Number(a[1])
+              )
+              .slice(0, 5)
+              .map(([key, value]: any) => (
+                <div
+                  key={key}
+                  className="flex justify-between items-center bg-white/5 rounded-2xl p-4 min-w-0"
+                >
+                  <p className="font-medium truncate">
+                    {formatCategory(key)}
+                  </p>
+
+                  <p className="text-red-400 font-semibold">
+                    ${Number(value || 0).toFixed(2)}
+                  </p>
+                </div>
+              ))}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CashFlowCard analytics={analytics} />
@@ -1707,7 +1685,9 @@ function DashboardContent({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <GoalsMiniCard />
-        <TransactionsMiniCard transactions={transactions} />
+        <TransactionsMiniCard
+          transactions={transactions}
+        />
       </div>
 
       <div className="bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-cyan-300/20 rounded-3xl p-5 text-cyan-200 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
@@ -1739,21 +1719,15 @@ function TransactionsContent({
               key={tx.id}
               className="bg-white/5 rounded-2xl p-4 flex justify-between items-center"
             >
-              <div>
-                <p className="font-semibold">
-                  {tx.merchant_name ||
-                    tx.name}
+              <div className="min-w-0">
+                <p className="font-semibold truncate">
+                  {tx.merchant_name || tx.name}
                 </p>
 
                 <p className="text-sm text-gray-400">
                   {tx.amount < 0
-  ? "Income"
-  : tx.category
-      ?.replace(/_/g, " ")
-      .toLowerCase()
-      .replace(/\b\w/g, (c: string) =>
-        c.toUpperCase()
-      )}
+                    ? "Income"
+                    : formatCategory(tx.category)}
                 </p>
               </div>
 
@@ -1765,7 +1739,7 @@ function TransactionsContent({
                 }`}
               >
                 {tx.amount > 0 ? "-" : "+"}$
-{Math.abs(tx.amount).toFixed(2)}
+                {Math.abs(tx.amount).toFixed(2)}
               </p>
             </div>
           ))
@@ -1778,10 +1752,30 @@ function TransactionsContent({
 function BudgetContent() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <BudgetCard title="Food" spent="$480" limit="$650" width="74%" />
-      <BudgetCard title="Gas" spent="$220" limit="$350" width="63%" />
-      <BudgetCard title="Kids" spent="$390" limit="$500" width="78%" />
-      <BudgetCard title="Tools/Home" spent="$210" limit="$300" width="70%" />
+      <BudgetCard
+        title="Food"
+        spent="$480"
+        limit="$650"
+        width="74%"
+      />
+      <BudgetCard
+        title="Gas"
+        spent="$220"
+        limit="$350"
+        width="63%"
+      />
+      <BudgetCard
+        title="Kids"
+        spent="$390"
+        limit="$500"
+        width="78%"
+      />
+      <BudgetCard
+        title="Tools/Home"
+        spent="$210"
+        limit="$300"
+        width="70%"
+      />
     </div>
   )
 }
@@ -1789,12 +1783,34 @@ function BudgetContent() {
 function GoalsContent() {
   return (
     <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
-      <h3 className="text-2xl font-semibold mb-6">Goals</h3>
+      <h3 className="text-2xl font-semibold mb-6">
+        Goals
+      </h3>
 
-      <Goal title="Emergency Fund" amount="$3,250 / $10,000" progress="32%" width="32%" />
-      <Goal title="Vacation Fund" amount="$1,850 / $5,000" progress="37%" width="37%" />
-      <Goal title="Debt Payoff" amount="$4,200 / $17,000" progress="25%" width="25%" />
-      <Goal title="Business Fund" amount="$600 / $5,000" progress="12%" width="12%" />
+      <Goal
+        title="Emergency Fund"
+        amount="$3,250 / $10,000"
+        progress="32%"
+        width="32%"
+      />
+      <Goal
+        title="Vacation Fund"
+        amount="$1,850 / $5,000"
+        progress="37%"
+        width="37%"
+      />
+      <Goal
+        title="Debt Payoff"
+        amount="$4,200 / $17,000"
+        progress="25%"
+        width="25%"
+      />
+      <Goal
+        title="Business Fund"
+        amount="$600 / $5,000"
+        progress="12%"
+        width="12%"
+      />
     </div>
   )
 }
@@ -1832,7 +1848,7 @@ function ReportsContent() {
 }
 
 function SettingsContent({
-    firstName,
+  firstName,
   setFirstName,
   lastName,
   setLastName,
@@ -1854,7 +1870,7 @@ function SettingsContent({
   openPlaid,
   plaidReady,
 }: {
-    firstName: string
+  firstName: string
   setFirstName: (value: string) => void
   lastName: string
   setLastName: (value: string) => void
@@ -1864,7 +1880,7 @@ function SettingsContent({
   setMainGoal: (value: string) => void
   incomeRange: string
   setIncomeRange: (value: string) => void
-  saveProfile: () => void
+  saveProfile: () => Promise<void>
   profileSaved: boolean
   voiceEnabled: boolean
   setVoiceEnabled: (value: boolean) => void
@@ -1873,173 +1889,204 @@ function SettingsContent({
   setTheme: (value: string) => void
   personality: string
   setPersonality: (value: string) => void
-  openPlaid: any
+  openPlaid: () => void
   plaidReady: boolean
 }) {
   return (
-  <>
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-5 mb-6">
-  <button
-    onClick={() => openPlaid()}
-    disabled={!plaidReady}
-    className="w-full min-h-[44px] flex items-center justify-between rounded-2xl bg-white/5 border border-white/10 px-4 py-4 hover:bg-white/10 transition disabled:opacity-50"
-  >
-    <div className="flex items-center gap-3">
-      <span className="text-2xl">
-        ☰
-      </span>
+    <>
+      <div className="bg-white/5 border border-white/10 rounded-3xl p-5 mb-6">
+        <button
+          onClick={() => openPlaid()}
+          disabled={!plaidReady}
+          className="w-full min-h-[44px] flex items-center justify-between rounded-2xl bg-white/5 border border-white/10 px-4 py-4 hover:bg-white/10 transition disabled:opacity-50"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">☰</span>
 
-      <div className="text-left">
-        <p className="font-semibold">
-          Financial Connections
-        </p>
+            <div className="text-left">
+              <p className="font-semibold">
+                Financial Connections
+              </p>
 
-        <p className="text-sm text-white/60">
-          Manage linked banks
-        </p>
-      </div>
-    </div>
-  </button>
-</div>
-
-    <div className="space-y-6">
-      <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
-        <h3 className="text-2xl font-semibold mb-6">Settings</h3>
-        
-        <div className="space-y-6">
-          <div className="flex justify-between items-center border-b border-white/10 py-4">
-            <div>
-                
-              <p className="font-semibold">MACCE Voice</p>
-              <p className="text-gray-400 text-sm">
-                Turn AI voice playback on or off.
+              <p className="text-sm text-white/60">
+                Manage linked banks
               </p>
             </div>
-            
-
-            <button
-              onClick={() => {
-                stopVoice()
-                setVoiceEnabled(!voiceEnabled)
-              }}
-              className={`min-h-[44px] rounded-2xl px-5 py-3 ${
-                voiceEnabled
-                  ? "bg-cyan-500/20 text-cyan-200"
-                  : "bg-white/5 text-gray-400"
-              }`}
-            >
-              {voiceEnabled ? "On" : "Off"}
-            </button>
           </div>
+        </button>
+      </div>
 
-          <div className="border-b border-white/10 py-4">
-            <p className="font-semibold mb-3">Personality</p>
+      <div className="space-y-6">
+        <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
+          <h3 className="text-2xl font-semibold mb-6">
+            Settings
+          </h3>
 
-            <div className="grid grid-cols-2 gap-3">
-              {["Companion", "Coach", "Chill", "Analyst"].map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setPersonality(mode)}
-                  className={`min-h-[44px] rounded-2xl p-3 transition ${
-                    personality === mode
-                      ? "bg-cyan-500/20 border border-cyan-300/30 text-cyan-200"
-                      : "bg-white/5 text-gray-300"
-                  }`}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
-          </div>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center border-b border-white/10 py-4">
+              <div>
+                <p className="font-semibold">
+                  MACCE Voice
+                </p>
 
-          <div className="py-4">
-            <p className="font-semibold mb-3">Theme</p>
+                <p className="text-gray-400 text-sm">
+                  Turn AI voice playback on or off.
+                </p>
+              </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              {["Neon Dark", "Ocean", "Midnight", "Purple"].map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setTheme(mode)}
-                  className={`min-h-[44px] rounded-2xl p-3 transition ${
-                    theme === mode
-                      ? "bg-cyan-500/20 border border-cyan-300/30 text-cyan-200"
-                      : "bg-white/5 text-gray-300"
-                  }`}
-                >
-                  {mode}
-                </button>
-              ))}
+              <button
+                onClick={() => {
+                  stopVoice()
+                  setVoiceEnabled(!voiceEnabled)
+                }}
+                className={`min-h-[44px] rounded-2xl px-5 py-3 ${
+                  voiceEnabled
+                    ? "bg-cyan-500/20 text-cyan-200"
+                    : "bg-white/5 text-gray-400"
+                }`}
+              >
+                {voiceEnabled ? "On" : "Off"}
+              </button>
             </div>
 
-            <p className="text-gray-400 text-sm mt-4">
-              Current theme: {theme}
-            </p>
+            <div className="border-b border-white/10 py-4">
+              <p className="font-semibold mb-3">
+                Personality
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  "Companion",
+                  "Coach",
+                  "Chill",
+                  "Analyst",
+                ].map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() =>
+                      setPersonality(mode)
+                    }
+                    className={`min-h-[44px] rounded-2xl p-3 transition ${
+                      personality === mode
+                        ? "bg-cyan-500/20 border border-cyan-300/30 text-cyan-200"
+                        : "bg-white/5 text-gray-300"
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="py-4">
+              <p className="font-semibold mb-3">
+                Theme
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  "Neon Dark",
+                  "Ocean",
+                  "Midnight",
+                  "Purple",
+                ].map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setTheme(mode)}
+                    className={`min-h-[44px] rounded-2xl p-3 transition ${
+                      theme === mode
+                        ? "bg-cyan-500/20 border border-cyan-300/30 text-cyan-200"
+                        : "bg-white/5 text-gray-300"
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-gray-400 text-sm mt-4">
+                Current theme: {theme}
+              </p>
+            </div>
+
+            <div className="space-y-4 pt-6">
+              <h4 className="text-xl font-semibold">
+                Profile
+              </h4>
+
+              <input
+                type="text"
+                placeholder="First Name"
+                value={firstName}
+                onChange={(e) =>
+                  setFirstName(e.target.value)
+                }
+                className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
+              />
+
+              <input
+                type="text"
+                placeholder="Last Name"
+                value={lastName}
+                onChange={(e) =>
+                  setLastName(e.target.value)
+                }
+                className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
+              />
+
+              <input
+                type="text"
+                placeholder="Phone Number"
+                value={phone}
+                onChange={(e) =>
+                  setPhone(e.target.value)
+                }
+                className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
+              />
+
+              <input
+                type="text"
+                placeholder="Main Financial Goal"
+                value={mainGoal}
+                onChange={(e) =>
+                  setMainGoal(e.target.value)
+                }
+                className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
+              />
+
+              <input
+                type="text"
+                placeholder="Income Range"
+                value={incomeRange}
+                onChange={(e) =>
+                  setIncomeRange(e.target.value)
+                }
+                className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
+              />
+
+              <button
+                type="button"
+                onClick={() => {
+                  console.log(
+                    "Save Profile clicked"
+                  )
+                  saveProfile()
+                }}
+                className="w-full min-h-[44px] bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl px-5 py-3 font-semibold hover:scale-[1.02] transition"
+              >
+                Save Profile
+              </button>
+
+              {profileSaved && (
+                <p className="text-green-400 text-sm">
+                  Profile saved.
+                </p>
+              )}
+            </div>
           </div>
-          
-          <div className="space-y-4 pt-6">
-  <h4 className="text-xl font-semibold">Profile</h4>
-
-  <input
-    type="text"
-    placeholder="First Name"
-    value={firstName}
-    onChange={(e) => setFirstName(e.target.value)}
-    className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
-  />
-
-  <input
-    type="text"
-    placeholder="Last Name"
-    value={lastName}
-    onChange={(e) => setLastName(e.target.value)}
-    className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
-  />
-
-  <input
-    type="text"
-    placeholder="Phone Number"
-    value={phone}
-    onChange={(e) => setPhone(e.target.value)}
-    className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
-  />
-
-  <input
-    type="text"
-    placeholder="Main Financial Goal"
-    value={mainGoal}
-    onChange={(e) => setMainGoal(e.target.value)}
-    className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
-  />
-
-  <input
-    type="text"
-    placeholder="Income Range"
-    value={incomeRange}
-    onChange={(e) => setIncomeRange(e.target.value)}
-    className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 outline-none text-white"
-  />
-
-  <button
-  type="button"
-  onClick={() => {
-    console.log("Save Profile clicked")
-    saveProfile()
-  }}
-  className="w-full min-h-[44px] bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl px-5 py-3 font-semibold hover:scale-[1.02] transition"
->
-  Save Profile
-</button>
-
-  {profileSaved && (
-    <p className="text-green-400 text-sm">
-      Profile saved.
-    </p>
-  )}
-</div>
         </div>
       </div>
-    </div>
-  </>
+    </>
   )
 }
 
@@ -2061,19 +2108,13 @@ function CashFlowCard({
 
             <span>
               $
-              {analytics?.income?.toFixed(
-                2
-              ) || "0.00"}
+              {analytics?.income?.toFixed(2) ||
+                "0.00"}
             </span>
           </div>
 
           <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-green-400 rounded-full"
-              style={{
-                width: "100%",
-              }}
-            />
+            <div className="h-full bg-green-400 rounded-full w-full" />
           </div>
         </div>
 
@@ -2083,9 +2124,8 @@ function CashFlowCard({
 
             <span>
               $
-              {analytics?.expenses?.toFixed(
-                2
-              ) || "0.00"}
+              {analytics?.expenses?.toFixed(2) ||
+                "0.00"}
             </span>
           </div>
 
@@ -2118,12 +2158,10 @@ function SpendingBreakdownCard({
   analytics: any
 }) {
   const categories = analytics?.categories
-    ? Object.entries(
-        analytics.categories
-      )
+    ? Object.entries(analytics.categories)
         .sort(
           (a: any, b: any) =>
-            b[1] - a[1]
+            Number(b[1]) - Number(a[1])
         )
         .slice(0, 5)
     : []
@@ -2131,7 +2169,7 @@ function SpendingBreakdownCard({
   const total =
     categories.reduce(
       (sum: number, entry: any) =>
-        sum + entry[1],
+        sum + Number(entry[1] || 0),
       0
     ) || 1
 
@@ -2142,41 +2180,33 @@ function SpendingBreakdownCard({
       </h3>
 
       <div className="space-y-4">
-        {categories.map(
-          (entry: any, index) => {
-            const percent =
-              (entry[1] / total) * 100
+        {categories.map((entry: any, index) => {
+          const percent =
+            (Number(entry[1] || 0) / total) * 100
 
-            return (
-              <div key={index}>
-                <div className="flex justify-between mb-1">
-                  <span>{entry[0]
-  .replace(/_/g, " ")
-  .toLowerCase()
-  .replace(/\b\w/g, (c: string) =>
-    c.toUpperCase()
-  )}</span>
+          return (
+            <div key={index}>
+              <div className="flex justify-between mb-1">
+                <span>
+                  {formatCategory(entry[0])}
+                </span>
 
-                  <span>
-                    $
-                    {entry[1].toFixed(
-                      2
-                    )}
-                  </span>
-                </div>
-
-                <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-cyan-400 rounded-full"
-                    style={{
-                      width: `${percent}%`,
-                    }}
-                  />
-                </div>
+                <span>
+                  ${Number(entry[1] || 0).toFixed(2)}
+                </span>
               </div>
-            )
-          }
-        )}
+
+              <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-cyan-400 rounded-full"
+                  style={{
+                    width: `${percent}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -2199,21 +2229,10 @@ function GoalsMiniCard() {
         </p>
 
         <ul className="mt-3 space-y-2 text-sm">
-          <li>
-            • Savings goals
-          </li>
-
-          <li>
-            • Debt payoff plans
-          </li>
-
-          <li>
-            • Emergency fund targets
-          </li>
-
-          <li>
-            • AI-powered budgeting plans
-          </li>
+          <li>• Savings goals</li>
+          <li>• Debt payoff plans</li>
+          <li>• Emergency fund targets</li>
+          <li>• AI-powered budgeting plans</li>
         </ul>
       </div>
     </div>
@@ -2232,42 +2251,35 @@ function TransactionsMiniCard({
       </h3>
 
       <div className="space-y-3">
-        {transactions
-          .slice(0, 5)
-          .map((tx, index) => (
-            <div
-              key={index}
-              className="flex justify-between items-center bg-white/5 rounded-2xl p-4 min-w-0"
-            >
-              <div>
-                <p className="font-medium truncate">
-                  {tx.name}
-                </p>
+        {transactions.slice(0, 5).map((tx) => (
+          <div
+            key={tx.id}
+            className="flex justify-between items-center bg-white/5 rounded-2xl p-4 min-w-0"
+          >
+            <div className="min-w-0">
+              <p className="font-medium truncate">
+                {tx.merchant_name || tx.name}
+              </p>
 
-                <p className="text-sm text-white/50">
-                  {tx.amount < 0
-  ? "Income"
-  : tx.category
-      ?.replace(/_/g, " ")
-      .toLowerCase()
-      .replace(/\b\w/g, (c: string) =>
-        c.toUpperCase()
-      )}
-                </p>
-              </div>
-
-              <p
-                className={`font-semibold ${
-                  tx.amount > 0
-                    ? "text-red-400"
-                    : "text-green-400"
-                }`}
-              >
-                {tx.amount > 0 ? "-" : "+"}$
-{Math.abs(tx.amount).toFixed(2)}
+              <p className="text-sm text-white/50">
+                {tx.amount < 0
+                  ? "Income"
+                  : formatCategory(tx.category)}
               </p>
             </div>
-          ))}
+
+            <p
+              className={`font-semibold ${
+                tx.amount > 0
+                  ? "text-red-400"
+                  : "text-green-400"
+              }`}
+            >
+              {tx.amount > 0 ? "-" : "+"}$
+              {Math.abs(tx.amount).toFixed(2)}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -2276,11 +2288,25 @@ function TransactionsMiniCard({
 function UpcomingBills() {
   return (
     <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
-      <h3 className="text-xl font-semibold mb-4">Upcoming Bills</h3>
+      <h3 className="text-xl font-semibold mb-4">
+        Upcoming Bills
+      </h3>
 
-      <Bill name="Rent" date="Jun 1" amount="$1,200.00" />
-      <Bill name="Car Insurance" date="Jun 5" amount="$120.00" />
-      <Bill name="Phone Bill" date="Jun 8" amount="$65.00" />
+      <Bill
+        name="Rent"
+        date="Jun 1"
+        amount="$1,200.00"
+      />
+      <Bill
+        name="Car Insurance"
+        date="Jun 5"
+        amount="$120.00"
+      />
+      <Bill
+        name="Phone Bill"
+        date="Jun 8"
+        amount="$65.00"
+      />
     </div>
   )
 }
@@ -2300,12 +2326,21 @@ function Card({
 }) {
   return (
     <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
-      <p className="text-gray-400 mb-3">{title}</p>
-      <h3 className="text-3xl font-bold mb-3">{value}</h3>
+      <p className="text-gray-400 mb-3">
+        {title}
+      </p>
+
+      <h3 className="text-3xl font-bold mb-3">
+        {value}
+      </h3>
 
       <p
         className={
-          good ? "text-green-400" : bad ? "text-orange-400" : "text-gray-400"
+          good
+            ? "text-green-400"
+            : bad
+              ? "text-orange-400"
+              : "text-gray-400"
         }
       >
         {note}
@@ -2330,7 +2365,10 @@ function Goal({
       <div className="flex justify-between mb-2">
         <div>
           <p>{title}</p>
-          <p className="text-gray-400 text-sm">{amount}</p>
+
+          <p className="text-gray-400 text-sm">
+            {amount}
+          </p>
         </div>
 
         <p>{progress}</p>
@@ -2340,34 +2378,8 @@ function Goal({
         <div
           className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full"
           style={{ width }}
-        ></div>
+        />
       </div>
-    </div>
-  )
-}
-
-function Transaction({
-  name,
-  amount,
-  good,
-  bad,
-}: {
-  name: string
-  amount: string
-  good?: boolean
-  bad?: boolean
-}) {
-  return (
-    <div className="flex justify-between border-b border-white/10 py-3">
-      <p>{name}</p>
-
-      <p
-        className={
-          good ? "text-green-400" : bad ? "text-red-400" : "text-gray-300"
-        }
-      >
-        {amount}
-      </p>
     </div>
   )
 }
@@ -2385,7 +2397,10 @@ function Bill({
     <div className="flex justify-between py-3 border-b border-white/10">
       <div>
         <p>{name}</p>
-        <p className="text-gray-400 text-sm">{date}</p>
+
+        <p className="text-gray-400 text-sm">
+          {date}
+        </p>
       </div>
 
       <p>{amount}</p>
@@ -2408,7 +2423,10 @@ function BudgetCard({
     <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
       <div className="flex justify-between mb-4">
         <div>
-          <h3 className="text-xl font-semibold">{title}</h3>
+          <h3 className="text-xl font-semibold">
+            {title}
+          </h3>
+
           <p className="text-gray-400 text-sm">
             {spent} used of {limit}
           </p>
@@ -2419,25 +2437,43 @@ function BudgetCard({
         <div
           className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full"
           style={{ width }}
-        ></div>
+        />
       </div>
     </div>
   )
 }
 
-function InsightCard({ title, text }: { title: string; text: string }) {
+function InsightCard({
+  title,
+  text,
+}: {
+  title: string
+  text: string
+}) {
   return (
     <div className="bg-white/5 border border-cyan-300/20 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
-      <h3 className="text-xl font-semibold text-cyan-300 mb-3">{title}</h3>
-      <p className="text-gray-300 leading-relaxed">{text}</p>
+      <h3 className="text-xl font-semibold text-cyan-300 mb-3">
+        {title}
+      </h3>
+
+      <p className="text-gray-300 leading-relaxed">
+        {text}
+      </p>
     </div>
   )
 }
 
-function ReportCard({ title }: { title: string }) {
+function ReportCard({
+  title,
+}: {
+  title: string
+}) {
   return (
     <div className="bg-white/5 border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:scale-[1.01] hover:border-cyan-300/30">
-      <h3 className="text-xl font-semibold mb-3">{title}</h3>
+      <h3 className="text-xl font-semibold mb-3">
+        {title}
+      </h3>
+
       <p className="text-gray-400 mb-5">
         Generate a clean MACCE report for this area.
       </p>
